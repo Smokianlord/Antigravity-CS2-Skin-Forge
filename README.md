@@ -1,132 +1,151 @@
 <div align="center">
-  
-# Antigravity CS2 Skin Forge ????
 
-**An automated, headless Python pipeline for generating photorealistic Counter-Strike 2 weapon skins using Blender's CYCLES & EEVEE engines.**
+# Antigravity CS2 Skin Forge
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Blender 4.0+](https://img.shields.io/badge/blender-4.0+-orange.svg)](https://www.blender.org/)
-[![CustomTkinter](https://img.shields.io/badge/UI-CustomTkinter-blueviolet)](https://github.com/TomSchimansky/CustomTkinter)
+**A Windows desktop pipeline for batch-generating Counter-Strike 2 weapon-skin showcase renders through Blender.**
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Platform](https://img.shields.io/badge/platform-Windows-0078D6)
+![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
+![Blender](https://img.shields.io/badge/Blender-4.x-F5792A)
+![License](https://img.shields.io/badge/license-MIT-yellow)
 
 </div>
 
-## ?? Description
+## Overview
 
-Antigravity CS2 Skin Forge is a professional-grade UI and rendering pipeline built specifically for Counter-Strike 2 skin creators. It completely automates the grueling process of rendering 3D skin showcases. 
+Antigravity CS2 Skin Forge is a CustomTkinter front end for a headless Blender rendering pipeline. It is designed for skin artists who want to preview flat texture concepts across multiple CS2 weapon models without manually setting up each render.
 
-Simply drop your 2D design textures into the Input folder, select your target weapons (e.g. AK-47, AWP, M4A1-S) via the CustomTkinter UI, and click **Generate**. The application will silently boot Blender in headless mode, automatically align cameras to perfectly fit each weapon's bounds, configure CYCLES raytracing materials with auto-extracted normal/roughness maps, light the scene, apply post-processing filters, and output production-ready transparent PNGs.
+The application can queue weapon/texture combinations, launch Blender in the background, build materials, apply available normal and roughness maps, frame the weapon automatically, render with Cycles or EEVEE, and save final images and optional `.blend` project files.
 
-### ? Key Features
-- **Headless Blender Integration**: Directly interfaces with Blender (CYCLES/EEVEE) in the background without needing to open the software.
-- **Smart Framing & Alignment**: Uses global bounding-box math and orthographic scales to perfectly frame any weapon size, from a Glock to an AWP, at consistent scales.
-- **Auto-Material Generation**: Automatically extracts and injects official Valve CS2 normal and roughness maps into the node tree.
-- **Batch Processing**: Render hundreds of weapon-texture permutations automatically ("All Combinations" or "Random Match").
-- **Dynamic Environments**: 3 unique lighting presets (Studio Pro, Bright Flat, Dark Cinematic) and 5 dynamic background compositions (Pure White, Deep Blue, Green Screen, etc).
-- **Post-Processing**: Built-in Brightness and Contrast slider integration via Python PIL.ImageEnhance.
+## Features
 
----
+- Batch rendering of selected textures across selected weapon models.
+- "All combinations" and random-match workflows.
+- Blender Cycles and EEVEE rendering modes.
+- Automatic orthographic camera framing based on weapon bounds.
+- Optional normal and roughness map hookup when matching assets are available.
+- Studio Pro, Bright Flat, and Dark Cinematic lighting presets.
+- 1080p, 1440p, 4K, and 8K quality presets.
+- PNG/JPEG output, transparent backgrounds, brightness/contrast adjustment.
+- Optional `.blend` project export for manual refinement.
+- Live progress log and render thumbnail preview.
 
-## ??? Installation
+## Requirements
 
-### 1. Prerequisites
-You must have the following software installed:
-* [Python 3.10+](https://www.python.org/downloads/)
-* [Blender](https://www.blender.org/download/) (Installed via Steam at C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe or update the path in gui_app.py)
+### Windows release
 
-### 2. Clone the Repository
-\\\ash
-git clone https://github.com/YOUR_USERNAME/Antigravity-CS2-Skin-Forge.git
-cd Antigravity-CS2-Skin-Forge
-\\\
+- Windows 10 or Windows 11.
+- Blender installed at the current default path used by v1.0.0:
 
-### 3. Install Dependencies
-\\\ash
-pip install -r requirements.txt
-\\\
+```text
+C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe
+```
 
-*(Required packages: customtkinter, Pillow, 
-umpy)*
+The v1.0.0 binary uses that Blender path directly. If your Blender installation is elsewhere, run from source after changing `blender_exe` in `app/gui_app.py`, or rebuild the executable after making that change.
 
-### 4. Provide the Assets
-Due to copyright, official Valve CS2 Models are not included in this repository. 
-You must place the official extracted .obj weapon models in:
-\Assets/Official Resources/CS2 Models/\
+### Running from source
 
----
+- Python 3.10+
+- Blender 4.x
+- Packages listed in `app/requirements.txt`
 
-## ?? Usage
+## Asset layout
 
-### Running the Python Source
-\\\ash
-python gui_app.py
-\\\
+Valve/Counter-Strike assets are **not included** in this repository or release. Provide only assets you are legally permitted to use.
 
-### Compiling to a Standalone Executable (.exe)
-If you want to distribute this to users who don't have Python installed, you can compile it using PyInstaller:
-\\\ash
-pyinstaller --onefile --noconsole --name "Antigravity_Skin_Forge" --icon="icon.ico" --add-data "icon.ico;." gui_app.py
-\\\
+The app expects this layout:
 
-### Workflow
-1. Place your exported flat .jpg or .png textures into the Input_Textures directory.
-2. Launch the application.
-3. Select the textures you want to use from the **Texture Selection** checklist.
-4. Select the weapons you want to render from the **Weapon Model Selection** grid.
-5. Configure your Render Engine (CYCLES GPU is highly recommended), Quality Preset, Background, and Lighting.
-6. Click **Generate** and monitor the live terminal and thumbnail preview.
-
----
-
-## ?? Directory Structure
-
-\\\	ext
+```text
 Antigravity-CS2-Skin-Forge/
-�
-+-- gui_app.py                  # Main CustomTkinter application and logic
-+-- blender_headless_render.py  # Generated on-the-fly to execute headless blender commands
-+-- requirements.txt            # Python dependencies
-+-- icon.ico                    # Application icon
-�
-+-- Input_Textures/             # Drop your custom weapon textures here
-+-- Output_Renders/             # Fully rendered PNG/JPG showcases appear here
-+-- Output_Project_Files/       # Automatically saved .blend projects for manual tweaking
-�
-+-- Assets/                     # Official Valve resources (Not included)
-    +-- Official Resources/CS2 Models/
-    +-- CS2_Weapon/             # Contains the extracted Normal/Roughness maps
-\\\
+├─ Assets/
+│  ├─ Official Resources/
+│  │  └─ CS2 Models/
+│  │     ├─ weapon_rif_ak47.obj
+│  │     └─ ...
+│  └─ CS2_Weapon/
+│     └─ CS2_Weapon/
+│        └─ ... normal/roughness texture files ...
+└─ app/
+   ├─ gui_app.py
+   ├─ Input_Textures/
+   ├─ Output_Renders/
+   └─ Output_Project_Files/
+```
 
----
+Weapon `.obj` filenames should use the internal CS2-style names recognized by the application, such as `weapon_rif_ak47.obj`, `weapon_snip_awp.obj`, and `weapon_pist_glock18.obj`.
 
-## ?? Configuration
+## Quick start: Windows release
 
-If your Blender is installed in a custom location (e.g. Epic Games, standalone installer), edit line 23 in \gui_app.py\:
-\\\python
-blender_exe = r"C:\Path\To\Your\Blender\blender.exe"
-\\\
+1. Download and extract the Windows release ZIP.
+2. Add your legally obtained weapon model and PBR resources under the top-level `Assets` folder using the layout above.
+3. Put your `.png`, `.jpg`, or `.jpeg` concept textures in `App/Input_Textures`.
+4. Run `App/Antigravity CS2 Skin Forge.exe`.
+5. Select textures and weapon models, choose render settings, then click **Generate**.
+6. Find finished images in `App/Output_Renders` and optional Blender projects in `App/Output_Project_Files`.
 
----
+## Run from source
 
-## ?? Contributing
+From the repository root:
 
-Contributions, issues, and feature requests are welcome! 
-Feel free to check the [issues page](https://github.com/YOUR_USERNAME/Antigravity-CS2-Skin-Forge/issues).
+```powershell
+cd app
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python gui_app.py
+```
 
-1. Fork the Project
-2. Create your Feature Branch (\git checkout -b feature/AmazingFeature\)
-3. Commit your Changes (\git commit -m 'Add some AmazingFeature'\)
-4. Push to the Branch (\git push origin feature/AmazingFeature\)
-5. Open a Pull Request
+## Build the Windows executable
 
----
+Install the development dependency and run the provided build script:
 
-## ?? License
+```powershell
+.\build_windows.bat
+```
 
-Distributed under the MIT License. See \LICENSE\ for more information.
+The PyInstaller output will be placed under `app/dist/`.
 
----
+## Repository structure
 
-<div align="center">
-  <i>Developed with ?? by [YOUR_NAME / YOUR_STUDIO]</i>
-</div>
+```text
+.
+├─ .github/                 # Issue templates and Windows build/release workflow
+├─ Assets/                  # User-supplied external assets; content is gitignored
+├─ app/
+│  ├─ gui_app.py            # Main application
+│  ├─ Antigravity_Skin_Forge.spec
+│  ├─ version.txt
+│  ├─ icon.ico
+│  ├─ requirements.txt
+│  ├─ requirements-dev.txt
+│  ├─ Input_Textures/
+│  ├─ Output_Renders/
+│  └─ Output_Project_Files/
+├─ CHANGELOG.md
+├─ CONTRIBUTING.md
+├─ LICENSE
+└─ RELEASE_NOTES_v1.0.0.md
+```
+
+## Known limitations in v1.0.0
+
+- Blender's executable path is hard-coded to the Steam installation path shown above.
+- The release does not include Valve models, textures, or other game assets.
+- GPU rendering availability depends on Blender, the installed GPU driver, and the selected compute device.
+- The GUI is currently Windows-oriented (`os.startfile` and Windows subprocess flags are used).
+
+## Contributing
+
+Bug reports and pull requests are welcome. Please see `CONTRIBUTING.md` before submitting changes.
+
+## License
+
+The application source code is licensed under the MIT License. See `LICENSE`.
+
+This license applies to this project's code only. It does not grant rights to Counter-Strike, Valve assets, third-party textures, user artwork, or other external content.
+
+## Disclaimer
+
+Antigravity CS2 Skin Forge is an independent community tool and is not affiliated with, endorsed by, or sponsored by Valve Corporation. Counter-Strike, Counter-Strike 2, CS2, and related game assets and trademarks belong to their respective owners.
