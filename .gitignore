@@ -1,0 +1,27 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*.class
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Application Specific
+Input_Textures/
+Output_Renders/
+Output_Project_Files/
+Assets/
+blender_headless_render.py
+
+# OS Files
+.DS_Store
+Thumbs.db

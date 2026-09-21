@@ -1,0 +1,712 @@
+import os
+import sys
+import subprocess
+import random
+import threading
+import glob
+import customtkinter as ctk
+
+if getattr(sys, 'frozen', False):
+    pipeline_folder = os.path.dirname(sys.executable)
+    icon_path = os.path.join(sys._MEIPASS, 'icon.ico') if hasattr(sys, '_MEIPASS') else 'icon.ico'
+else:
+    pipeline_folder = os.path.dirname(os.path.abspath(__file__))
+    icon_path = os.path.join(pipeline_folder, 'icon.ico')
+
+root_folder = os.path.dirname(pipeline_folder)
+assets_folder = os.path.join(root_folder, "Assets")
+default_input_folder = os.path.join(pipeline_folder, "Input_Textures")
+default_out_folder = os.path.join(pipeline_folder, "Output_Renders")
+default_blend_folder = os.path.join(pipeline_folder, "Output_Project_Files")
+blender_exe = r"C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe"
+
+os.makedirs(default_input_folder, exist_ok=True)
+os.makedirs(default_out_folder, exist_ok=True)
+os.makedirs(default_blend_folder, exist_ok=True)
+
+cs2_names = {
+    "weapon_rif_ak47": "AK-47", "weapon_snip_awp": "AWP", "weapon_pist_glock18": "Glock-18",
+    "weapon_rif_m4a1_silencer": "M4A1-S", "weapon_rif_m4a4": "M4A4", "weapon_pist_usp_silencer": "USP-S",
+    "weapon_pist_deagle": "Desert Eagle", "weapon_mach_m249": "M249", "weapon_mach_negev": "Negev",
+    "weapon_pist_cz75a": "CZ75-Auto", "weapon_pist_elite": "Dual Berettas", "weapon_pist_fiveseven": "Five-SeveN",
+    "weapon_pist_hkp2000": "P2000", "weapon_pist_p250": "P250", "weapon_pist_revolver": "R8 Revolver",
+    "weapon_pist_tec9": "Tec-9", "weapon_pist_taser": "Zeus x27", "weapon_rif_aug": "AUG",
+    "weapon_rif_famas": "FAMAS", "weapon_rif_galilar": "Galil AR", "weapon_rif_sg556": "SG 553",
+    "weapon_shot_mag7": "MAG-7", "weapon_shot_nova": "Nova", "weapon_shot_sawedoff": "Sawed-Off",
+    "weapon_shot_xm1014": "XM1014", "weapon_smg_bizon": "PP-Bizon", "weapon_smg_mac10": "MAC-10",
+    "weapon_smg_mp5sd": "MP5-SD", "weapon_smg_mp7": "MP7", "weapon_smg_mp9": "MP9",
+    "weapon_smg_p90": "P90", "weapon_smg_ump45": "UMP-45", "weapon_snip_g3sg1": "G3SG1",
+    "weapon_snip_scar20": "SCAR-20", "weapon_snip_ssg08": "SSG 08"
+}
+
+models_dir = os.path.join(assets_folder, r"Official Resources\CS2 Models")
+tex_dir = os.path.join(assets_folder, r"CS2_Weapon\CS2_Weapon")
+all_weapons = []
+
+if os.path.exists(models_dir):
+    for obj_file in os.listdir(models_dir):
+        if not obj_file.endswith('.obj'): continue
+        base_name = obj_file.replace('.obj', '')
+        display_name = cs2_names.get(base_name, base_name.replace('weapon_', '').title())
+        short_name = base_name.split('_')[-1]
+        search_name = short_name
+        if short_name == "glock18": search_name = "glock"
+        if short_name == "m4a1_silencer": search_name = "m4a1"
+        if short_name == "usp_silencer": search_name = "usp"
+        if short_name == "elite": search_name = "beretta"
+        if short_name == "hkp2000": search_name = "p2000"
+        
+        norms = glob.glob(os.path.join(tex_dir, "**", f"*{search_name}*normal*.png"), recursive=True)
+        roughs = glob.glob(os.path.join(tex_dir, "**", f"*{search_name}*rough*.png"), recursive=True)
+        normal_path = norms[0] if norms else "NONE"
+        rough_path = roughs[0] if roughs else "NONE"
+        
+        all_weapons.append({
+            "id": base_name,
+            "name": display_name,
+            "obj": os.path.join(models_dir, obj_file),
+            "normal": normal_path,
+            "rough": rough_path
+        })
+all_weapons.sort(key=lambda x: x["name"])
+
+blender_script = os.path.join(pipeline_folder, "blender_headless_render.py")
+blender_code = '''import bpy
+import sys
+import os
+import math
+import mathutils
+
+argv = sys.argv[sys.argv.index("--") + 1:]
+obj_path, normal_path, rough_path, tex_path, out_path, blend_path, quality, transparent, engine, lighting, fmt, compute_device = argv
+
+bpy.ops.wm.read_factory_settings(use_empty=True)
+bpy.context.scene.render.engine = 'CYCLES' if engine == "Cycles Raytracing" else 'BLENDER_EEVEE_NEXT'
+if bpy.context.scene.render.engine == 'CYCLES':
+    try:
+        prefs = bpy.context.preferences.addons['cycles'].preferences
+        prefs.compute_device_type = 'CUDA'
+        prefs.get_devices()
+        for d in prefs.devices:
+            d.use = True
+    except:
+        pass
+    bpy.context.scene.cycles.device = compute_device
+    bpy.context.scene.cycles.use_denoising = True
+
+bpy.context.scene.render.film_transparent = True if transparent == "True" else False
+
+if quality == "Standard (1080p | 32 Samples)": res_x, res_y, samples = 1920, 1080, 32
+elif quality == "High (1440p | 64 Samples)": res_x, res_y, samples = 2560, 1440, 64
+elif quality == "Ultra (4K | 256 Samples)": res_x, res_y, samples = 3840, 2160, 256
+elif quality == "Masterpiece (8K | 512 Samples)": res_x, res_y, samples = 7680, 4320, 512
+else: res_x, res_y, samples = 2560, 1440, 64
+
+bpy.context.scene.render.resolution_x = res_x
+bpy.context.scene.render.resolution_y = res_y
+if bpy.context.scene.render.engine == 'CYCLES':
+    bpy.context.scene.cycles.samples = samples
+else:
+    bpy.context.scene.eevee.taa_render_samples = samples
+
+try: bpy.ops.import_scene.obj(filepath=obj_path)
+except: bpy.ops.wm.obj_import(filepath=obj_path)
+
+meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
+min_x, min_y, min_z = float('inf'), float('inf'), float('inf')
+max_x, max_y, max_z = float('-inf'), float('-inf'), float('-inf')
+for m in meshes:
+    for v in m.bound_box:
+        vec = m.matrix_world @ mathutils.Vector(v)
+        min_x = min(min_x, vec.x); min_y = min(min_y, vec.y); min_z = min(min_z, vec.z)
+        max_x = max(max_x, vec.x); max_y = max(max_y, vec.y); max_z = max(max_z, vec.z)
+
+size_x = max_x - min_x
+size_y = max_y - min_y
+size_z = max_z - min_z
+global_bbox_center = mathutils.Vector(((min_x + max_x)/2, (min_y + max_y)/2, (min_z + max_z)/2))
+max_dim = max(size_x, size_y, size_z)
+
+cam_data = bpy.data.cameras.new("RenderCam")
+cam_data.type = 'ORTHO'
+render_ratio = res_x / res_y
+cam_data.ortho_scale = max(max(size_x, size_y), size_z * render_ratio) * 1.15
+cam_obj = bpy.data.objects.new("RenderCam", object_data=cam_data)
+bpy.context.scene.collection.objects.link(cam_obj)
+bpy.context.scene.camera = cam_obj
+cam_dist = max_dim * 2.0
+
+if size_x > size_y:
+    cam_obj.location = (global_bbox_center.x, global_bbox_center.y + cam_dist, global_bbox_center.z)
+    cam_obj.rotation_euler = (math.radians(90), 0, math.radians(180))
+else:
+    cam_obj.location = (global_bbox_center.x + cam_dist, global_bbox_center.y, global_bbox_center.z)
+    cam_obj.rotation_euler = (math.radians(90), 0, math.radians(90))
+
+mat = bpy.data.materials.new(name="SkinMaterial")
+mat.use_nodes = True
+nodes = mat.node_tree.nodes
+links = mat.node_tree.links
+nodes.clear()
+
+bsdf = nodes.new("ShaderNodeBsdfPrincipled")
+out_node = nodes.new("ShaderNodeOutputMaterial")
+links.new(bsdf.outputs[0], out_node.inputs[0])
+
+tex_node = nodes.new("ShaderNodeTexImage")
+tex_node.image = bpy.data.images.load(tex_path)
+tc_node = nodes.new("ShaderNodeTexCoord")
+map_node = nodes.new("ShaderNodeMapping")
+tex_ratio = tex_node.image.size[0] / tex_node.image.size[1]
+map_node.inputs['Scale'].default_value = (render_ratio / tex_ratio, 1.0, 1.0)
+links.new(tc_node.outputs["Window"], map_node.inputs["Vector"])
+links.new(map_node.outputs["Vector"], tex_node.inputs["Vector"])
+links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
+
+if normal_path != "NONE" and os.path.exists(normal_path):
+    norm_tex = nodes.new("ShaderNodeTexImage")
+    norm_tex.image = bpy.data.images.load(normal_path)
+    norm_tex.image.colorspace_settings.name = "Non-Color"
+    norm_map = nodes.new("ShaderNodeNormalMap")
+    links.new(norm_tex.outputs["Color"], norm_map.inputs["Color"])
+    links.new(norm_map.outputs["Normal"], bsdf.inputs["Normal"])
+
+if rough_path != "NONE" and os.path.exists(rough_path):
+    rough_tex = nodes.new("ShaderNodeTexImage")
+    rough_tex.image = bpy.data.images.load(rough_path)
+    rough_tex.image.colorspace_settings.name = "Non-Color"
+    links.new(rough_tex.outputs["Color"], bsdf.inputs["Roughness"])
+else:
+    bsdf.inputs['Roughness'].default_value = 0.5
+bsdf.inputs['Metallic'].default_value = 0.5
+
+for m in meshes:
+    m.data.materials.clear()
+    m.data.materials.append(mat)
+
+def add_light(name, base_energy, offset_x, offset_y, offset_z, radius_mult):
+    l_data = bpy.data.lights.new(name=name, type="AREA")
+    l_data.energy = base_energy * (max_dim ** 2) * 5.0
+    l_data.shape = "DISK"
+    l_data.size = max_dim * radius_mult
+    l_obj = bpy.data.objects.new(name=name, object_data=l_data)
+    l_obj.location = (global_bbox_center.x + offset_x * max_dim, global_bbox_center.y + offset_y * max_dim, global_bbox_center.z + offset_z * max_dim)
+    bpy.context.scene.collection.objects.link(l_obj)
+    track_target = bpy.data.objects.new("Target", None)
+    track_target.location = global_bbox_center
+    bpy.context.scene.collection.objects.link(track_target)
+    tt = l_obj.constraints.new(type="TRACK_TO")
+    tt.target = track_target; tt.track_axis = "TRACK_NEGATIVE_Z"; tt.up_axis = "UP_Y"
+
+if lighting == "Studio Pro":
+    add_light("Key", 50, -0.5, 1.0, 0.5, 0.5)
+    add_light("Fill", 10, 0.5, 1.0, -0.5, 1.0)
+    add_light("Rim", 250, 0.2, -0.8, 0.5, 0.2)
+elif lighting == "Bright Flat":
+    add_light("Front", 80, 0.0, 1.0, 0.2, 2.0)
+    add_light("Back", 40, 0.0, -1.0, 0.2, 2.0)
+elif lighting == "Dark Cinematic":
+    add_light("Key", 15, -0.8, 0.8, 0.2, 0.2)
+    add_light("Rim", 500, 0.5, -0.8, 0.8, 0.1)
+
+bpy.ops.file.pack_all()
+if blend_path != "SKIP":
+    bpy.ops.wm.save_as_mainfile(filepath=blend_path)
+
+bpy.context.scene.render.image_settings.file_format = fmt
+bpy.context.scene.render.filepath = out_path
+bpy.ops.render.render(write_still=True)
+'''
+with open(blender_script, 'w') as f: f.write(blender_code)
+
+ctk.set_appearance_mode("Dark")
+ctk.set_default_color_theme("blue")
+
+class CS2SkinGeneratorApp(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title("Antigravity CS2 Skin Forge v1.0.0")
+        
+        window_width = 1450
+        window_height = 750
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        center_x = int(screen_width / 2 - window_width / 2)
+        center_y = int(screen_height / 2 - window_height / 2)
+        self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
+        
+        try: self.iconbitmap(icon_path)
+        except: pass
+
+        self.in_dir = default_input_folder
+        self.out_dir = default_out_folder
+        self.blend_dir = default_blend_folder
+
+        # ---------------- TOP RIBBON MENU ----------------
+        self.top_bar = ctk.CTkFrame(self, height=30, corner_radius=0, fg_color="#1f1f23")
+        self.top_bar.pack(side="top", fill="x")
+
+        self.file_var = ctk.StringVar(value="File")
+        self.file_menu = ctk.CTkOptionMenu(self.top_bar, variable=self.file_var, 
+                                           values=["Open Input Directory", "Open Output Directory", "Open Project Directory", "Exit"],
+                                           command=self.handle_file_menu,
+                                           width=60, fg_color="#1f1f23", button_color="#1f1f23", button_hover_color="#3f3f46", text_color="#f4f4f5")
+        self.file_menu.pack(side="left", padx=5, pady=2)
+
+        self.edit_var = ctk.StringVar(value="Edit")
+        self.edit_menu = ctk.CTkOptionMenu(self.top_bar, variable=self.edit_var, 
+                                           values=["Select All Models", "Deselect All Models", "Select Random Model (3)"],
+                                           command=self.handle_edit_menu,
+                                           width=60, fg_color="#1f1f23", button_color="#1f1f23", button_hover_color="#3f3f46", text_color="#f4f4f5")
+        self.edit_menu.pack(side="left", padx=5, pady=2)
+
+        self.config_var = ctk.StringVar(value="Configure")
+        self.config_menu = ctk.CTkOptionMenu(self.top_bar, variable=self.config_var, 
+                                           values=["Set Input Textures Directory", "Set Output Renders Directory", "Set Output Projects Directory"],
+                                           command=self.handle_config_menu,
+                                           width=60, fg_color="#1f1f23", button_color="#1f1f23", button_hover_color="#3f3f46", text_color="#f4f4f5")
+        self.config_menu.pack(side="left", padx=5, pady=2)
+        
+        self.help_var = ctk.StringVar(value="Help")
+        self.help_menu = ctk.CTkOptionMenu(self.top_bar, variable=self.help_var, 
+                                           values=["View Documentation", "About"],
+                                           command=self.handle_help_menu,
+                                           width=60, fg_color="#1f1f23", button_color="#1f1f23", button_hover_color="#3f3f46", text_color="#f4f4f5")
+        self.help_menu.pack(side="left", padx=5, pady=2)
+
+        # ---------------- DIRECTORY FOOTER ----------------
+        self.footer_toggle = ctk.CTkButton(self, text="▼ Show Active Directories", fg_color="#1f1f23", hover_color="#27272a", text_color="#a1a1aa", corner_radius=0, height=24, command=self.toggle_dirs)
+        self.footer_toggle.pack(side="bottom", fill="x")
+
+        self.footer_frame = ctk.CTkFrame(self, fg_color="#18181b", corner_radius=0)
+        self.footer_frame.grid_columnconfigure(1, weight=1)
+        
+        ctk.CTkLabel(self.footer_frame, text="Input Textures:", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=10, pady=5, sticky="e")
+        self.lbl_path_in = ctk.CTkEntry(self.footer_frame, fg_color="#27272a", border_width=0, text_color="#a1a1aa")
+        self.lbl_path_in.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(self.footer_frame, text="Output Renders:", font=ctk.CTkFont(weight="bold")).grid(row=1, column=0, padx=10, pady=5, sticky="e")
+        self.lbl_path_out = ctk.CTkEntry(self.footer_frame, fg_color="#27272a", border_width=0, text_color="#a1a1aa")
+        self.lbl_path_out.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(self.footer_frame, text="Output Projects:", font=ctk.CTkFont(weight="bold")).grid(row=2, column=0, padx=10, pady=5, sticky="e")
+        self.lbl_path_blend = ctk.CTkEntry(self.footer_frame, fg_color="#27272a", border_width=0, text_color="#a1a1aa")
+        self.lbl_path_blend.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
+        
+        self.update_path_displays()
+
+        # ---------------- MAIN HORIZONTAL CONTAINER ----------------
+        self.main_container = ctk.CTkFrame(self, fg_color="#09090b")
+        self.main_container.pack(side="top", fill="both", expand=True)
+        self.main_container.grid_columnconfigure(0, weight=6)
+        self.main_container.grid_columnconfigure(1, weight=4)
+        self.main_container.grid_rowconfigure(0, weight=1)
+
+        # ==========================================
+        # LEFT COLUMN: Textures & Weapons
+        # ==========================================
+        self.left_frame = ctk.CTkFrame(self.main_container, fg_color="transparent")
+        self.left_frame.grid(row=0, column=0, sticky="nsew", padx=(15, 5), pady=15)
+
+        # 1. TEXTURE SELECTION BLOCK
+        self.tex_container = ctk.CTkFrame(self.left_frame, fg_color="#18181b", corner_radius=10)
+        self.tex_container.pack(fill="x", pady=(0, 15))
+        
+        self.tex_top = ctk.CTkFrame(self.tex_container, fg_color="transparent")
+        self.tex_top.pack(fill="x", padx=15, pady=(15, 5))
+        self.lbl_tex = ctk.CTkLabel(self.tex_top, text="Texture Selection", font=ctk.CTkFont(size=18, weight="bold"), text_color="#f4f4f5")
+        self.lbl_tex.pack(side="left")
+        
+        self.btn_tex_none = ctk.CTkButton(self.tex_top, text="Deselect All", width=80, height=24, fg_color="#3f3f46", hover_color="#52525b", command=self.deselect_all_tex)
+        self.btn_tex_none.pack(side="right", padx=(5,0))
+        self.btn_tex_all = ctk.CTkButton(self.tex_top, text="Select All", width=80, height=24, fg_color="#3f3f46", hover_color="#52525b", command=self.select_all_tex)
+        self.btn_tex_all.pack(side="right")
+
+        self.grid_textures = ctk.CTkScrollableFrame(self.tex_container, fg_color="#27272a", corner_radius=10, height=200)
+        self.grid_textures.pack(fill="x", padx=15, pady=(5, 15))
+        self.grid_textures.grid_columnconfigure(0, weight=1)
+        self.texture_vars = {}
+        self.refresh_textures()
+
+        # 2. WEAPONS BLOCK
+        self.weap_container = ctk.CTkFrame(self.left_frame, fg_color="#18181b", corner_radius=10)
+        self.weap_container.pack(fill="both", expand=True)
+
+        self.weap_top = ctk.CTkFrame(self.weap_container, fg_color="transparent")
+        self.weap_top.pack(fill="x", padx=15, pady=(15, 5))
+        self.lbl_weapons = ctk.CTkLabel(self.weap_top, text="Weapon Model Selection", font=ctk.CTkFont(size=18, weight="bold"), text_color="#f4f4f5")
+        self.lbl_weapons.pack(side="left")
+
+        self.btn_sel_none = ctk.CTkButton(self.weap_top, text="Deselect All", width=80, height=24, fg_color="#3f3f46", hover_color="#52525b", command=self.deselect_all)
+        self.btn_sel_none.pack(side="right", padx=(5,0))
+        self.btn_sel_all = ctk.CTkButton(self.weap_top, text="Select All", width=80, height=24, fg_color="#3f3f46", hover_color="#52525b", command=self.select_all)
+        self.btn_sel_all.pack(side="right", padx=5)
+        self.btn_sel_rand = ctk.CTkButton(self.weap_top, text="Random Pick (3)", width=100, height=24, fg_color="#3f3f46", hover_color="#52525b", command=self.select_random)
+        self.btn_sel_rand.pack(side="right", padx=5)
+
+        self.grid_weapons = ctk.CTkScrollableFrame(self.weap_container, fg_color="#27272a", corner_radius=10)
+        self.grid_weapons.pack(fill="both", expand=True, padx=15, pady=(5, 15))
+        
+        self.weapon_vars = {}
+        for i, w in enumerate(all_weapons):
+            col = i % 5
+            row = i // 5
+            var = ctk.BooleanVar(value=False)
+            chk = ctk.CTkCheckBox(self.grid_weapons, text=w["name"], variable=var, font=ctk.CTkFont(size=13), fg_color="#ef4444", hover_color="#dc2626")
+            chk.grid(row=row, column=col, sticky="w", padx=15, pady=8)
+            self.weapon_vars[w["id"]] = var
+            self.grid_weapons.grid_columnconfigure(col, weight=1)
+
+        # ==========================================
+        # RIGHT COLUMN: Settings, Post-Process, Console, Generate
+        # ==========================================
+        self.right_frame = ctk.CTkFrame(self.main_container, fg_color="transparent")
+        self.right_frame.grid(row=0, column=1, sticky="nsew", padx=(5, 15), pady=15)
+        self.right_frame.grid_columnconfigure(0, weight=1)
+
+        # 3. SETTINGS BLOCK
+        self.settings_container = ctk.CTkFrame(self.right_frame, fg_color="#18181b", corner_radius=10)
+        self.settings_container.pack(fill="x", pady=(0, 15))
+        self.settings_container.grid_columnconfigure(0, weight=1, uniform="a")
+        self.settings_container.grid_columnconfigure(1, weight=1, uniform="a")
+        
+        self.lbl_settings = ctk.CTkLabel(self.settings_container, text="Rendering Engine Options", font=ctk.CTkFont(size=18, weight="bold"), text_color="#f4f4f5")
+        self.lbl_settings.grid(row=0, column=0, columnspan=2, sticky="w", padx=15, pady=(15, 5))
+
+        self.lbl_eng = ctk.CTkLabel(self.settings_container, text="Render Engine:")
+        self.lbl_eng.grid(row=1, column=0, sticky="w", padx=15)
+        self.engine_var = ctk.StringVar(value="Cycles Raytracing")
+        self.opt_engine = ctk.CTkOptionMenu(self.settings_container, variable=self.engine_var, values=["Cycles Raytracing", "Eevee (Realtime)"], fg_color="#27272a", button_color="#3f3f46", dynamic_resizing=False)
+        self.opt_engine.grid(row=2, column=0, sticky="ew", padx=15, pady=(0, 10))
+
+        self.lbl_dev = ctk.CTkLabel(self.settings_container, text="Compute Device:")
+        self.lbl_dev.grid(row=1, column=1, sticky="w", padx=15)
+        self.compute_var = ctk.StringVar(value="GPU")
+        self.opt_compute = ctk.CTkOptionMenu(self.settings_container, variable=self.compute_var, values=["GPU", "CPU"], fg_color="#27272a", button_color="#3f3f46", dynamic_resizing=False)
+        self.opt_compute.grid(row=2, column=1, sticky="ew", padx=15, pady=(0, 10))
+
+        self.lbl_quality = ctk.CTkLabel(self.settings_container, text="Quality Preset:")
+        self.lbl_quality.grid(row=3, column=0, sticky="w", padx=15)
+        self.quality_var = ctk.StringVar(value="High (1440p | 64 Samples)")
+        self.opt_quality = ctk.CTkOptionMenu(self.settings_container, variable=self.quality_var, values=["Standard (1080p | 32 Samples)", "High (1440p | 64 Samples)", "Ultra (4K | 256 Samples)", "Masterpiece (8K | 512 Samples)"], fg_color="#27272a", button_color="#3f3f46", dynamic_resizing=False)
+        self.opt_quality.grid(row=4, column=0, sticky="ew", padx=15, pady=(0, 10))
+
+        self.lbl_bg = ctk.CTkLabel(self.settings_container, text="Studio Background:")
+        self.lbl_bg.grid(row=3, column=1, sticky="w", padx=15)
+        self.bg_var = ctk.StringVar(value="Dark Grey (Default)")
+        self.opt_bg = ctk.CTkOptionMenu(self.settings_container, variable=self.bg_var, values=["Dark Grey (Default)", "Deep Blue", "Pure Black", "Pure White", "Green Screen"], fg_color="#27272a", button_color="#3f3f46", dynamic_resizing=False)
+        self.opt_bg.grid(row=4, column=1, sticky="ew", padx=15, pady=(0, 10))
+        
+        self.chk_grid = ctk.CTkFrame(self.settings_container, fg_color="transparent")
+        self.chk_grid.grid(row=5, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+        self.blend_var = ctk.BooleanVar(value=True)
+        self.chk_blend = ctk.CTkCheckBox(self.chk_grid, text="Export .blend Project", variable=self.blend_var, fg_color="#ef4444", hover_color="#dc2626")
+        self.chk_blend.pack(side="left", padx=(0, 20))
+        self.trans_var = ctk.BooleanVar(value=False)
+        self.chk_trans = ctk.CTkCheckBox(self.chk_grid, text="Transparent Background", variable=self.trans_var, fg_color="#ef4444", hover_color="#dc2626")
+        self.chk_trans.pack(side="left")
+
+        self.mode_grid = ctk.CTkFrame(self.settings_container, fg_color="transparent")
+        self.mode_grid.grid(row=6, column=0, columnspan=2, sticky="w", padx=15, pady=(5, 15))
+        self.lbl_mode = ctk.CTkLabel(self.mode_grid, text="Generation Mode:", font=ctk.CTkFont(weight="bold"))
+        self.lbl_mode.pack(side="left", padx=(0, 10))
+        self.mode_var = ctk.StringVar(value="all")
+        self.rb_random = ctk.CTkRadioButton(self.mode_grid, text="Random Match", variable=self.mode_var, value="random", fg_color="#ef4444", hover_color="#dc2626")
+        self.rb_random.pack(side="left", padx=10)
+        self.rb_all = ctk.CTkRadioButton(self.mode_grid, text="All Combinations", variable=self.mode_var, value="all", fg_color="#ef4444", hover_color="#dc2626")
+        self.rb_all.pack(side="left", padx=10)
+
+        # 4. POST PROCESSING BLOCK
+        self.post_container = ctk.CTkFrame(self.right_frame, fg_color="#18181b", corner_radius=10)
+        self.post_container.pack(fill="x", pady=(0, 15))
+        self.post_container.grid_columnconfigure(1, weight=1)
+        
+        self.lbl_bc = ctk.CTkLabel(self.post_container, text="Image Post-Processing", font=ctk.CTkFont(size=18, weight="bold"), text_color="#f4f4f5")
+        self.lbl_bc.grid(row=0, column=0, columnspan=3, sticky="w", padx=15, pady=(15, 10))
+        
+        self.lbl_bright = ctk.CTkLabel(self.post_container, text="Brightness:")
+        self.lbl_bright.grid(row=1, column=0, sticky="w", padx=15, pady=5)
+        self.bright_var = ctk.DoubleVar(value=1.0)
+        self.bright_slider = ctk.CTkSlider(self.post_container, from_=0.2, to=2.0, variable=self.bright_var, button_color="#ef4444", button_hover_color="#dc2626", command=lambda v: self.lbl_b_val.configure(text=f"{v:.2f}"))
+        self.bright_slider.grid(row=1, column=1, sticky="ew", padx=15, pady=5)
+        self.lbl_b_val = ctk.CTkLabel(self.post_container, text="1.00")
+        self.lbl_b_val.grid(row=1, column=2, padx=15, pady=5)
+        
+        self.lbl_cont = ctk.CTkLabel(self.post_container, text="Contrast:")
+        self.lbl_cont.grid(row=2, column=0, sticky="w", padx=15, pady=(5, 15))
+        self.cont_var = ctk.DoubleVar(value=1.0)
+        self.cont_slider = ctk.CTkSlider(self.post_container, from_=0.2, to=2.0, variable=self.cont_var, button_color="#ef4444", button_hover_color="#dc2626", command=lambda v: self.lbl_c_val.configure(text=f"{v:.2f}"))
+        self.cont_slider.grid(row=2, column=1, sticky="ew", padx=15, pady=(5, 15))
+        self.lbl_c_val = ctk.CTkLabel(self.post_container, text="1.00")
+        self.lbl_c_val.grid(row=2, column=2, padx=15, pady=(5, 15))
+
+        # 5. BOTTOM AREA BLOCK (Log, Preview, Progress, Generate)
+        self.bottom_container = ctk.CTkFrame(self.right_frame, fg_color="#18181b", corner_radius=10)
+        self.bottom_container.pack(fill="both", expand=True)
+
+        self.log_preview_split = ctk.CTkFrame(self.bottom_container, fg_color="transparent")
+        self.log_preview_split.pack(fill="both", expand=True, padx=15, pady=(15, 5))
+        
+        self.log_box = ctk.CTkTextbox(self.log_preview_split, height=120, fg_color="#000000", text_color="#10b981", font=ctk.CTkFont(family="Consolas", size=12))
+        self.log_box.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        self.log_box.insert("0.0", "> System Boot Successful.\n> Awaiting directive...\n")
+        self.log_box.configure(state="disabled")
+
+        self.preview_lbl = ctk.CTkLabel(self.log_preview_split, width=120, height=120, text="Preview Area", fg_color="#27272a", corner_radius=10, text_color="#52525b", font=ctk.CTkFont(slant="italic"))
+        self.preview_lbl.pack(side="right")
+
+        self.progress_bar = ctk.CTkProgressBar(self.bottom_container, progress_color="#ef4444")
+        self.progress_bar.pack(fill="x", padx=15, pady=(15, 10))
+        self.progress_bar.set(0)
+
+        self.btn_generate = ctk.CTkButton(self.bottom_container, text="Generate", font=ctk.CTkFont(size=20, weight="bold"), height=60, fg_color="#ef4444", hover_color="#dc2626", command=self.start_generation)
+        self.btn_generate.pack(fill="x", padx=15, pady=(0, 15))
+
+        # Fallback formats
+        self.fmt_var = ctk.StringVar(value="PNG")
+        self.light_var = ctk.StringVar(value="Studio Pro")
+
+    def refresh_textures(self):
+        for widget in self.grid_textures.winfo_children():
+            widget.destroy()
+        self.texture_vars.clear()
+        
+        if not os.path.exists(self.in_dir): return
+        valid_ext = ('.jpg', '.jpeg', '.png')
+        tex_files = [f for f in os.listdir(self.in_dir) if f.lower().endswith(valid_ext)]
+        
+        if not tex_files:
+            lbl = ctk.CTkLabel(self.grid_textures, text=f"No textures found in:\n{self.in_dir}", text_color="#a1a1aa", font=ctk.CTkFont(slant="italic"))
+            lbl.grid(row=0, column=0, padx=15, pady=10)
+            return
+
+        for i, tex in enumerate(tex_files):
+            var = ctk.BooleanVar(value=False)
+            ext = os.path.splitext(tex)[1].upper().replace('.', '')
+            
+            chk = ctk.CTkCheckBox(self.grid_textures, text=tex, variable=var, font=ctk.CTkFont(size=13), fg_color="#ef4444", hover_color="#dc2626")
+            chk.grid(row=i, column=0, sticky="w", padx=15, pady=5)
+            
+            lbl_ext = ctk.CTkLabel(self.grid_textures, text=ext, font=ctk.CTkFont(size=12, weight="bold"), text_color="#a1a1aa")
+            lbl_ext.grid(row=i, column=1, sticky="e", padx=15, pady=5)
+            self.texture_vars[tex] = var
+
+    def select_all_tex(self):
+        for var in self.texture_vars.values(): var.set(True)
+    def deselect_all_tex(self):
+        for var in self.texture_vars.values(): var.set(False)
+
+    def toggle_dirs(self):
+        if self.footer_frame.winfo_ismapped():
+            self.footer_frame.pack_forget()
+            self.footer_toggle.configure(text="▼ Show Active Directories")
+        else:
+            self.footer_frame.pack(side="bottom", fill="x", before=self.footer_toggle)
+            self.footer_toggle.configure(text="▲ Hide Active Directories")
+
+    def update_path_displays(self):
+        self.lbl_path_in.configure(state="normal")
+        self.lbl_path_in.delete(0, "end")
+        self.lbl_path_in.insert(0, self.in_dir)
+        self.lbl_path_in.configure(state="readonly")
+        
+        self.lbl_path_out.configure(state="normal")
+        self.lbl_path_out.delete(0, "end")
+        self.lbl_path_out.insert(0, self.out_dir)
+        self.lbl_path_out.configure(state="readonly")
+        
+        self.lbl_path_blend.configure(state="normal")
+        self.lbl_path_blend.delete(0, "end")
+        self.lbl_path_blend.insert(0, self.blend_dir)
+        self.lbl_path_blend.configure(state="readonly")
+
+    def handle_config_menu(self, choice):
+        self.config_var.set("Configure")
+        if choice == "Set Input Textures Directory":
+            path = ctk.filedialog.askdirectory(title="Select Input Directory")
+            if path:
+                self.in_dir = path
+                self.refresh_textures()
+                self.update_path_displays()
+        elif choice == "Set Output Renders Directory":
+            path = ctk.filedialog.askdirectory(title="Select Output Renders Directory")
+            if path: 
+                self.out_dir = path
+                self.update_path_displays()
+        elif choice == "Set Output Projects Directory":
+            path = ctk.filedialog.askdirectory(title="Select Output Projects Directory")
+            if path: 
+                self.blend_dir = path
+                self.update_path_displays()
+
+    def handle_file_menu(self, choice):
+        self.file_var.set("File")
+        if choice == "Open Input Directory": os.startfile(self.in_dir)
+        elif choice == "Open Output Directory": os.startfile(self.out_dir)
+        elif choice == "Open Project Directory": os.startfile(self.blend_dir)
+        elif choice == "Exit": self.quit()
+
+    def handle_edit_menu(self, choice):
+        self.edit_var.set("Edit")
+        if choice == "Select All Models": self.select_all()
+        elif choice == "Deselect All Models": self.deselect_all()
+        elif choice == "Select Random Model (3)": self.select_random()
+
+    def handle_help_menu(self, choice):
+        self.help_var.set("Help")
+        if choice == "View Documentation": self.show_docs()
+        elif choice == "About": self.show_about()
+        
+    def show_docs(self):
+        win = ctk.CTkToplevel(self)
+        win.title("Documentation")
+        win.geometry("500x300")
+        win.attributes('-topmost', True)
+        try: win.after(200, lambda: win.iconbitmap(icon_path) if os.path.exists(icon_path) else None)
+        except: pass
+        lbl = ctk.CTkLabel(win, text="Documentation:\n\n1. Select your desired Textures from the top left grid.\n2. Select your desired Weapons from the bottom left grid.\n3. Adjust settings or use the Configure menu to change folders.\n4. Click 'Generate'.", justify="left", font=ctk.CTkFont(size=14))
+        lbl.pack(expand=True, padx=20, pady=20)
+
+    def show_about(self):
+        win = ctk.CTkToplevel(self)
+        win.title("About")
+        win.geometry("400x250")
+        win.attributes('-topmost', True)
+        try: win.after(200, lambda: win.iconbitmap(icon_path) if os.path.exists(icon_path) else None)
+        except: pass
+        lbl = ctk.CTkLabel(win, text="Antigravity CS2 Skin Forge v1.0.0\n\nDeveloped for CS2 Texturing workflows.\nPowered by Blender CYCLES & EEVEE.\n\nCreated by Smokianlord", font=ctk.CTkFont(size=14, weight="bold"))
+        lbl.pack(expand=True)
+        
+    def show_completion_popup(self):
+        win = ctk.CTkToplevel(self)
+        win.title("Done!")
+        win.geometry("300x150")
+        win.attributes('-topmost', True)
+        try: win.after(200, lambda: win.iconbitmap(icon_path) if os.path.exists(icon_path) else None)
+        except: pass
+        lbl = ctk.CTkLabel(win, text="Rendering is Complete!", font=ctk.CTkFont(size=18, weight="bold"), text_color="#10b981")
+        lbl.pack(pady=20)
+        btn = ctk.CTkButton(win, text="Open Output Folder", command=lambda: [os.startfile(self.out_dir), win.destroy()])
+        btn.pack(pady=10)
+
+    def select_all(self):
+        for var in self.weapon_vars.values(): var.set(True)
+    def deselect_all(self):
+        for var in self.weapon_vars.values(): var.set(False)
+    def select_random(self):
+        self.deselect_all()
+        keys = random.sample(list(self.weapon_vars.keys()), min(3, len(self.weapon_vars)))
+        for k in keys: self.weapon_vars[k].set(True)
+
+    def log(self, message):
+        self.log_box.configure(state="normal")
+        self.log_box.insert("end", "> " + message + "\n")
+        self.log_box.see("end")
+        self.log_box.configure(state="disabled")
+        
+    def _update_preview(self, img_obj):
+        self.preview_lbl.configure(image=img_obj, text="")
+        self.preview_lbl.image = img_obj
+
+    def start_generation(self):
+        self.btn_generate.configure(state="disabled")
+        self.progress_bar.set(0)
+        self.log_box.configure(state="normal")
+        self.log_box.delete("0.0", "end")
+        self.log_box.configure(state="disabled")
+        threading.Thread(target=self.run_pipeline, daemon=True).start()
+
+    def run_pipeline(self):
+        selected_tex_paths = [os.path.join(self.in_dir, tex) for tex, var in self.texture_vars.items() if var.get()]
+        if not selected_tex_paths:
+            self.log("ERROR: Please select at least one Texture from the grid!")
+            self.btn_generate.configure(state="normal")
+            return
+            
+        selected_weapons = [w for w in all_weapons if self.weapon_vars[w["id"]].get()]
+        if not selected_weapons:
+            self.log("ERROR: Please select at least one weapon model!")
+            self.btn_generate.configure(state="normal")
+            return
+            
+        jobs = []
+        if self.mode_var.get() == "random":
+            for w in selected_weapons:
+                tex = random.choice(selected_tex_paths)
+                jobs.append((w, tex))
+        else:
+            for w in selected_weapons:
+                for tex in selected_tex_paths:
+                    jobs.append((w, tex))
+                    
+        total_jobs = len(jobs)
+        q_preset = self.quality_var.get()
+        self.log(f"Warming up engine... [{q_preset}]")
+        self.log(f"Queued {total_jobs} unique skins for compilation.")
+        
+        bg_colors = {
+            "Dark Grey (Default)": (20, 20, 24, 255),
+            "Deep Blue": (15, 20, 35, 255),
+            "Pure Black": (0, 0, 0, 255),
+            "Pure White": (255, 255, 255, 255),
+            "Green Screen": (0, 255, 0, 255)
+        }
+        
+        for i, (w, tex_path) in enumerate(jobs):
+            tex_name = os.path.basename(tex_path)
+            self.log(f"[{i+1}/{total_jobs}] Rendering {w['name']} with {tex_name}...")
+            ext = ".png" if self.fmt_var.get() == "PNG" else ".jpg"
+            out_img = os.path.join(self.out_dir, f"True3D_{w['id']}_{tex_name.split('_')[0]}_PlaySide{ext}")
+            blend_out = "SKIP"
+            if self.blend_var.get():
+                blend_out = os.path.join(self.blend_dir, f"True3D_{w['id']}_{tex_name.split('_')[0]}_Project.blend")
+                
+            cmd = [
+                blender_exe, "-b", "--python-exit-code", "1", "-P", blender_script, "--",
+                w["obj"], w["normal"], w["rough"], tex_path, out_img, blend_out, 
+                q_preset, str(self.trans_var.get()), self.engine_var.get(), self.light_var.get(), self.fmt_var.get(), self.compute_var.get()
+            ]
+            
+            try:
+                subprocess.run(cmd, check=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                
+                # Apply post-processing using Python PIL
+                from PIL import Image, ImageEnhance
+                render = Image.open(out_img).convert("RGBA")
+                
+                # Apply sliders
+                if abs(self.bright_var.get() - 1.0) > 0.01:
+                    render = ImageEnhance.Brightness(render).enhance(self.bright_var.get())
+                if abs(self.cont_var.get() - 1.0) > 0.01:
+                    render = ImageEnhance.Contrast(render).enhance(self.cont_var.get())
+                
+                if not self.trans_var.get() and self.fmt_var.get() == "PNG":
+                    bg = Image.new("RGBA", render.size, bg_colors[self.bg_var.get()])
+                    bg.paste(render, (0, 0), render)
+                    render = bg
+                elif not self.trans_var.get() and self.fmt_var.get() == "JPEG":
+                    bg = Image.new("RGB", render.size, bg_colors[self.bg_var.get()][:3])
+                    bg.paste(render, (0, 0), render)
+                    render = bg
+                    
+                render.save(out_img)
+                self.log(f"SUCCESS: Exported {os.path.basename(out_img)}")
+                
+                # Update the side-bar live preview
+                thumb = render.copy()
+                thumb.thumbnail((120, 120))
+                ctk_img = ctk.CTkImage(light_image=thumb, dark_image=thumb, size=thumb.size)
+                self.after(0, lambda img=ctk_img: self._update_preview(img))
+                
+            except Exception as e:
+                self.log(f"FAILED: Blender execution error.")
+                
+            self.progress_bar.set((i + 1) / total_jobs)
+            
+        self.log("Pipeline cycle complete!")
+        self.btn_generate.configure(state="normal")
+        self.after(0, self.show_completion_popup)
+
+if __name__ == "__main__":
+    app = CS2SkinGeneratorApp()
+    app.mainloop()
