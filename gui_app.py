@@ -39,8 +39,24 @@ cs2_names = {
     "weapon_snip_scar20": "SCAR-20", "weapon_snip_ssg08": "SSG 08"
 }
 
-models_dir = os.path.join(assets_folder, r"Official Resources\CS2 Models")
-tex_dir = os.path.join(assets_folder, r"CS2_Weapon\CS2_Weapon")
+def resolve_asset_dir(primary_subpath, fallback_subpaths=None):
+    if fallback_subpaths is None: fallback_subpaths = []
+    candidates = [primary_subpath] + fallback_subpaths
+    if hasattr(sys, '_MEIPASS'):
+        for sub in candidates:
+            p = os.path.join(sys._MEIPASS, sub)
+            if os.path.exists(p): return p
+    for sub in candidates:
+        p = os.path.join(pipeline_folder, sub)
+        if os.path.exists(p): return p
+    parent_dir = os.path.dirname(pipeline_folder)
+    for sub in candidates:
+        p = os.path.join(parent_dir, sub)
+        if os.path.exists(p): return p
+    return os.path.join(pipeline_folder, primary_subpath)
+
+models_dir = resolve_asset_dir(r"Assets\Models", [r"Assets\Official Resources\CS2 Models", r"Assets\CS2 Models"])
+tex_dir = resolve_asset_dir(r"Assets\Textures", [r"Assets\CS2_Weapon\CS2_Weapon", r"Assets\CS2_Weapon"])
 all_weapons = []
 
 if os.path.exists(models_dir):
@@ -78,7 +94,9 @@ import math
 import mathutils
 
 argv = sys.argv[sys.argv.index("--") + 1:]
-obj_path, normal_path, rough_path, tex_path, out_path, blend_path, quality, transparent, engine, lighting, fmt, compute_device = argv
+obj_path, normal_path, rough_path, tex_path, out_path, blend_path, quality, transparent, engine, lighting, fmt, compute_device, tex_offset_x, tex_offset_y = argv
+tex_offset_x = -float(tex_offset_x)
+tex_offset_y = -float(tex_offset_y)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.context.scene.render.engine = 'CYCLES' if engine == "Cycles Raytracing" else 'BLENDER_EEVEE_NEXT'
@@ -96,7 +114,8 @@ if bpy.context.scene.render.engine == 'CYCLES':
 
 bpy.context.scene.render.film_transparent = True if transparent == "True" else False
 
-if quality == "Standard (1080p | 32 Samples)": res_x, res_y, samples = 1920, 1080, 32
+if quality == "Preview (480p | 8 Samples)": res_x, res_y, samples = 854, 480, 8
+elif quality == "Standard (1080p | 32 Samples)": res_x, res_y, samples = 1920, 1080, 32
 elif quality == "High (1440p | 64 Samples)": res_x, res_y, samples = 2560, 1440, 64
 elif quality == "Ultra (4K | 256 Samples)": res_x, res_y, samples = 3840, 2160, 256
 elif quality == "Masterpiece (8K | 512 Samples)": res_x, res_y, samples = 7680, 4320, 512
@@ -159,6 +178,7 @@ tc_node = nodes.new("ShaderNodeTexCoord")
 map_node = nodes.new("ShaderNodeMapping")
 tex_ratio = tex_node.image.size[0] / tex_node.image.size[1]
 map_node.inputs['Scale'].default_value = (render_ratio / tex_ratio, 1.0, 1.0)
+map_node.inputs['Location'].default_value = (tex_offset_x, tex_offset_y, 0.0)
 links.new(tc_node.outputs["Window"], map_node.inputs["Vector"])
 links.new(map_node.outputs["Vector"], tex_node.inputs["Vector"])
 links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
@@ -242,6 +262,10 @@ class CS2SkinGeneratorApp(ctk.CTk):
         self.out_dir = default_out_folder
         self.blend_dir = default_blend_folder
 
+        self.preview_win = None
+        self.preview_raw_render = None
+        self.is_preview_running = False
+
         # ---------------- TOP RIBBON MENU ----------------
         self.top_bar = ctk.CTkFrame(self, height=30, corner_radius=0, fg_color="#1f1f23")
         self.top_bar.pack(side="top", fill="x")
@@ -273,6 +297,11 @@ class CS2SkinGeneratorApp(ctk.CTk):
                                            command=self.handle_help_menu,
                                            width=60, fg_color="#1f1f23", button_color="#1f1f23", button_hover_color="#3f3f46", text_color="#f4f4f5")
         self.help_menu.pack(side="left", padx=5, pady=2)
+
+        self.btn_top_preview = ctk.CTkButton(self.top_bar, text="👁 Live Preview", font=ctk.CTkFont(size=12, weight="bold"),
+                                             fg_color="#ef4444", hover_color="#dc2626", text_color="#ffffff",
+                                             height=24, width=120, command=self.toggle_preview_window)
+        self.btn_top_preview.pack(side="right", padx=10, pady=2)
 
         # ---------------- DIRECTORY FOOTER ----------------
         self.footer_toggle = ctk.CTkButton(self, text="▼ Show Active Directories", fg_color="#1f1f23", hover_color="#27272a", text_color="#a1a1aa", corner_radius=0, height=24, command=self.toggle_dirs)
@@ -321,6 +350,8 @@ class CS2SkinGeneratorApp(ctk.CTk):
         self.btn_tex_none.pack(side="right", padx=(5,0))
         self.btn_tex_all = ctk.CTkButton(self.tex_top, text="Select All", width=80, height=24, fg_color="#3f3f46", hover_color="#52525b", command=self.select_all_tex)
         self.btn_tex_all.pack(side="right")
+        self.btn_tex_refresh = ctk.CTkButton(self.tex_top, text="⟳ Refresh", width=80, height=24, fg_color="#3f3f46", hover_color="#52525b", command=self.refresh_textures)
+        self.btn_tex_refresh.pack(side="right", padx=(0, 5))
 
         self.grid_textures = ctk.CTkScrollableFrame(self.tex_container, fg_color="#27272a", corner_radius=10, height=200)
         self.grid_textures.pack(fill="x", padx=15, pady=(5, 15))
@@ -416,51 +447,63 @@ class CS2SkinGeneratorApp(ctk.CTk):
         self.rb_all = ctk.CTkRadioButton(self.mode_grid, text="All Combinations", variable=self.mode_var, value="all", fg_color="#ef4444", hover_color="#dc2626")
         self.rb_all.pack(side="left", padx=10)
 
-        # 4. POST PROCESSING BLOCK
+        # 4. ADJUSTMENTS BLOCK (Post-Processing + Texture Offset)
         self.post_container = ctk.CTkFrame(self.right_frame, fg_color="#18181b", corner_radius=10)
-        self.post_container.pack(fill="x", pady=(0, 15))
+        self.post_container.pack(fill="x", pady=(0, 10))
         self.post_container.grid_columnconfigure(1, weight=1)
         
-        self.lbl_bc = ctk.CTkLabel(self.post_container, text="Image Post-Processing", font=ctk.CTkFont(size=18, weight="bold"), text_color="#f4f4f5")
-        self.lbl_bc.grid(row=0, column=0, columnspan=3, sticky="w", padx=15, pady=(15, 10))
+        self.lbl_bc = ctk.CTkLabel(self.post_container, text="Adjustments", font=ctk.CTkFont(size=18, weight="bold"), text_color="#f4f4f5")
+        self.lbl_bc.grid(row=0, column=0, columnspan=3, sticky="w", padx=15, pady=(12, 6))
         
         self.lbl_bright = ctk.CTkLabel(self.post_container, text="Brightness:")
-        self.lbl_bright.grid(row=1, column=0, sticky="w", padx=15, pady=5)
+        self.lbl_bright.grid(row=1, column=0, sticky="w", padx=15, pady=3)
         self.bright_var = ctk.DoubleVar(value=1.0)
-        self.bright_slider = ctk.CTkSlider(self.post_container, from_=0.2, to=2.0, variable=self.bright_var, button_color="#ef4444", button_hover_color="#dc2626", command=lambda v: self.lbl_b_val.configure(text=f"{v:.2f}"))
-        self.bright_slider.grid(row=1, column=1, sticky="ew", padx=15, pady=5)
+        self.bright_slider = ctk.CTkSlider(self.post_container, from_=0.2, to=2.0, variable=self.bright_var, button_color="#ef4444", button_hover_color="#dc2626", command=self._on_bright_slider)
+        self.bright_slider.grid(row=1, column=1, sticky="ew", padx=15, pady=3)
         self.lbl_b_val = ctk.CTkLabel(self.post_container, text="1.00")
-        self.lbl_b_val.grid(row=1, column=2, padx=15, pady=5)
+        self.lbl_b_val.grid(row=1, column=2, padx=15, pady=3)
         
         self.lbl_cont = ctk.CTkLabel(self.post_container, text="Contrast:")
-        self.lbl_cont.grid(row=2, column=0, sticky="w", padx=15, pady=(5, 15))
+        self.lbl_cont.grid(row=2, column=0, sticky="w", padx=15, pady=3)
         self.cont_var = ctk.DoubleVar(value=1.0)
-        self.cont_slider = ctk.CTkSlider(self.post_container, from_=0.2, to=2.0, variable=self.cont_var, button_color="#ef4444", button_hover_color="#dc2626", command=lambda v: self.lbl_c_val.configure(text=f"{v:.2f}"))
-        self.cont_slider.grid(row=2, column=1, sticky="ew", padx=15, pady=(5, 15))
+        self.cont_slider = ctk.CTkSlider(self.post_container, from_=0.2, to=2.0, variable=self.cont_var, button_color="#ef4444", button_hover_color="#dc2626", command=self._on_cont_slider)
+        self.cont_slider.grid(row=2, column=1, sticky="ew", padx=15, pady=3)
         self.lbl_c_val = ctk.CTkLabel(self.post_container, text="1.00")
-        self.lbl_c_val.grid(row=2, column=2, padx=15, pady=(5, 15))
+        self.lbl_c_val.grid(row=2, column=2, padx=15, pady=3)
 
-        # 5. BOTTOM AREA BLOCK (Log, Preview, Progress, Generate)
+        self.lbl_tex_off_x = ctk.CTkLabel(self.post_container, text="Texture X:")
+        self.lbl_tex_off_x.grid(row=3, column=0, sticky="w", padx=15, pady=3)
+        self.tex_off_x_var = ctk.DoubleVar(value=0.0)
+        self.tex_off_x_slider = ctk.CTkSlider(self.post_container, from_=-1.0, to=1.0, variable=self.tex_off_x_var, button_color="#ef4444", button_hover_color="#dc2626", command=self._on_tx_slider)
+        self.tex_off_x_slider.grid(row=3, column=1, sticky="ew", padx=15, pady=3)
+        self.tex_off_x_slider.bind("<ButtonRelease-1>", lambda e: self._on_main_slider_release())
+        self.lbl_tx_val = ctk.CTkLabel(self.post_container, text="0.00")
+        self.lbl_tx_val.grid(row=3, column=2, padx=15, pady=3)
+
+        self.lbl_tex_off_y = ctk.CTkLabel(self.post_container, text="Texture Y:")
+        self.lbl_tex_off_y.grid(row=4, column=0, sticky="w", padx=15, pady=(3, 10))
+        self.tex_off_y_var = ctk.DoubleVar(value=0.0)
+        self.tex_off_y_slider = ctk.CTkSlider(self.post_container, from_=-1.0, to=1.0, variable=self.tex_off_y_var, button_color="#ef4444", button_hover_color="#dc2626", command=self._on_ty_slider)
+        self.tex_off_y_slider.grid(row=4, column=1, sticky="ew", padx=15, pady=(3, 10))
+        self.tex_off_y_slider.bind("<ButtonRelease-1>", lambda e: self._on_main_slider_release())
+        self.lbl_ty_val = ctk.CTkLabel(self.post_container, text="0.00")
+        self.lbl_ty_val.grid(row=4, column=2, padx=15, pady=(3, 10))
+
+        # 5. BOTTOM AREA BLOCK (Log, Progress, Generate)
         self.bottom_container = ctk.CTkFrame(self.right_frame, fg_color="#18181b", corner_radius=10)
-        self.bottom_container.pack(fill="both", expand=True)
+        self.bottom_container.pack(fill="x")
 
-        self.log_preview_split = ctk.CTkFrame(self.bottom_container, fg_color="transparent")
-        self.log_preview_split.pack(fill="both", expand=True, padx=15, pady=(15, 5))
-        
-        self.log_box = ctk.CTkTextbox(self.log_preview_split, height=120, fg_color="#000000", text_color="#10b981", font=ctk.CTkFont(family="Consolas", size=12))
-        self.log_box.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        self.log_box = ctk.CTkTextbox(self.bottom_container, height=75, fg_color="#000000", text_color="#10b981", font=ctk.CTkFont(family="Consolas", size=12))
+        self.log_box.pack(fill="x", padx=15, pady=(12, 6))
         self.log_box.insert("0.0", "> System Boot Successful.\n> Awaiting directive...\n")
         self.log_box.configure(state="disabled")
 
-        self.preview_lbl = ctk.CTkLabel(self.log_preview_split, width=120, height=120, text="Preview Area", fg_color="#27272a", corner_radius=10, text_color="#52525b", font=ctk.CTkFont(slant="italic"))
-        self.preview_lbl.pack(side="right")
-
         self.progress_bar = ctk.CTkProgressBar(self.bottom_container, progress_color="#ef4444")
-        self.progress_bar.pack(fill="x", padx=15, pady=(15, 10))
+        self.progress_bar.pack(fill="x", padx=15, pady=(4, 10))
         self.progress_bar.set(0)
 
-        self.btn_generate = ctk.CTkButton(self.bottom_container, text="Generate", font=ctk.CTkFont(size=20, weight="bold"), height=60, fg_color="#ef4444", hover_color="#dc2626", command=self.start_generation)
-        self.btn_generate.pack(fill="x", padx=15, pady=(0, 15))
+        self.btn_generate = ctk.CTkButton(self.bottom_container, text="Generate", font=ctk.CTkFont(size=20, weight="bold"), height=50, fg_color="#ef4444", hover_color="#dc2626", command=self.start_generation)
+        self.btn_generate.pack(fill="x", padx=15, pady=(0, 12))
 
         # Fallback formats
         self.fmt_var = ctk.StringVar(value="PNG")
@@ -604,9 +647,241 @@ class CS2SkinGeneratorApp(ctk.CTk):
         self.log_box.see("end")
         self.log_box.configure(state="disabled")
         
+    def _on_bright_slider(self, v):
+        self.lbl_b_val.configure(text=f"{v:.2f}")
+        self._refresh_preview_postprocess()
+
+    def _on_cont_slider(self, v):
+        self.lbl_c_val.configure(text=f"{v:.2f}")
+        self._refresh_preview_postprocess()
+
+    def _on_tx_slider(self, v):
+        self._sync_slider_x(v)
+
+    def _on_ty_slider(self, v):
+        self._sync_slider_y(v)
+
+    def _sync_slider_x(self, v):
+        self.lbl_tx_val.configure(text=f"{float(v):.2f}")
+        if hasattr(self, 'pw_val_x') and self.pw_val_x.winfo_exists():
+            self.pw_val_x.configure(text=f"{float(v):.2f}")
+
+    def _sync_slider_y(self, v):
+        self.lbl_ty_val.configure(text=f"{float(v):.2f}")
+        if hasattr(self, 'pw_val_y') and self.pw_val_y.winfo_exists():
+            self.pw_val_y.configure(text=f"{float(v):.2f}")
+
+    def _on_main_slider_release(self):
+        if hasattr(self, 'preview_win') and self.preview_win is not None and self.preview_win.winfo_exists():
+            self.trigger_live_preview()
+
+    def _on_preview_close(self):
+        if self.preview_win is not None:
+            self.preview_win.destroy()
+            self.preview_win = None
+
+    def _reset_offsets(self):
+        self.tex_off_x_var.set(0.0)
+        self.tex_off_y_var.set(0.0)
+        self._sync_slider_x(0.0)
+        self._sync_slider_y(0.0)
+        self.trigger_live_preview()
+
+    def toggle_preview_window(self):
+        if hasattr(self, 'preview_win') and self.preview_win is not None and self.preview_win.winfo_exists():
+            self.preview_win.deiconify()
+            self.preview_win.lift()
+            self.preview_win.focus_force()
+            self.trigger_live_preview()
+            return
+        
+        self.create_preview_window()
+
+    def create_preview_window(self):
+        self.preview_win = ctk.CTkToplevel(self)
+        self.preview_win.title("Live Skin Preview - Antigravity CS2 Skin Forge")
+        
+        pw_w, pw_h = 1060, 720
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        cx = max(10, int(sw / 2 - pw_w / 2))
+        cy = max(10, int(sh / 2 - pw_h / 2))
+        self.preview_win.geometry(f"{pw_w}x{pw_h}+{cx}+{cy}")
+        
+        try:
+            self.preview_win.after(200, lambda: self.preview_win.iconbitmap(icon_path) if os.path.exists(icon_path) else None)
+        except:
+            pass
+            
+        self.preview_win.protocol("WM_DELETE_WINDOW", self._on_preview_close)
+
+        # Header bar
+        pw_header = ctk.CTkFrame(self.preview_win, fg_color="#18181b", height=44, corner_radius=0)
+        pw_header.pack(fill="x", padx=0, pady=(0, 5))
+        
+        self.pw_title_lbl = ctk.CTkLabel(pw_header, text="Preview: Loading...", font=ctk.CTkFont(size=13, weight="bold"), text_color="#f4f4f5")
+        self.pw_title_lbl.pack(side="left", padx=15, pady=8)
+        
+        self.pw_status_lbl = ctk.CTkLabel(pw_header, text="● Ready", text_color="#10b981", font=ctk.CTkFont(size=12, weight="bold"))
+        self.pw_status_lbl.pack(side="left", padx=15, pady=8)
+
+        self.pw_btn_refresh = ctk.CTkButton(pw_header, text="⟳ Update Preview", width=120, height=28, fg_color="#ef4444", hover_color="#dc2626", font=ctk.CTkFont(size=12, weight="bold"), command=self.trigger_live_preview)
+        self.pw_btn_refresh.pack(side="right", padx=15, pady=6)
+
+        # Center Display Area (Large 16:9 viewport)
+        self.pw_display_frame = ctk.CTkFrame(self.preview_win, fg_color="#09090b", corner_radius=10)
+        self.pw_display_frame.pack(fill="both", expand=True, padx=15, pady=5)
+        
+        self.pw_image_lbl = ctk.CTkLabel(self.pw_display_frame, text="⚡ Rendering live preview...", font=ctk.CTkFont(size=16), text_color="#71717a")
+        self.pw_image_lbl.pack(expand=True, fill="both", padx=10, pady=10)
+
+        # Bottom Controls (Live Texture Positioning Sliders)
+        pw_controls = ctk.CTkFrame(self.preview_win, fg_color="#18181b", corner_radius=10)
+        pw_controls.pack(fill="x", padx=15, pady=(5, 15))
+        pw_controls.grid_columnconfigure(1, weight=1)
+        pw_controls.grid_columnconfigure(4, weight=1)
+
+        # Row 0: Texture X slider
+        lbl_x = ctk.CTkLabel(pw_controls, text="Texture X:", font=ctk.CTkFont(weight="bold"))
+        lbl_x.grid(row=0, column=0, padx=(15, 5), pady=8, sticky="w")
+        
+        self.pw_slider_x = ctk.CTkSlider(pw_controls, from_=-1.0, to=1.0, variable=self.tex_off_x_var,
+                                         button_color="#ef4444", button_hover_color="#dc2626",
+                                         command=lambda v: self._sync_slider_x(v))
+        self.pw_slider_x.grid(row=0, column=1, padx=5, pady=8, sticky="ew")
+        self.pw_slider_x.bind("<ButtonRelease-1>", lambda e: self.trigger_live_preview())
+        
+        self.pw_val_x = ctk.CTkLabel(pw_controls, text=f"{self.tex_off_x_var.get():.2f}", width=40)
+        self.pw_val_x.grid(row=0, column=2, padx=(5, 15), pady=8)
+
+        # Row 0: Texture Y slider
+        lbl_y = ctk.CTkLabel(pw_controls, text="Texture Y:", font=ctk.CTkFont(weight="bold"))
+        lbl_y.grid(row=0, column=3, padx=(15, 5), pady=8, sticky="w")
+        
+        self.pw_slider_y = ctk.CTkSlider(pw_controls, from_=-1.0, to=1.0, variable=self.tex_off_y_var,
+                                         button_color="#ef4444", button_hover_color="#dc2626",
+                                         command=lambda v: self._sync_slider_y(v))
+        self.pw_slider_y.grid(row=0, column=4, padx=5, pady=8, sticky="ew")
+        self.pw_slider_y.bind("<ButtonRelease-1>", lambda e: self.trigger_live_preview())
+        
+        self.pw_val_y = ctk.CTkLabel(pw_controls, text=f"{self.tex_off_y_var.get():.2f}", width=40)
+        self.pw_val_y.grid(row=0, column=5, padx=(5, 10), pady=8)
+
+        btn_reset = ctk.CTkButton(pw_controls, text="Reset (0, 0)", width=95, height=26, fg_color="#3f3f46", hover_color="#52525b", command=self._reset_offsets)
+        btn_reset.grid(row=0, column=6, padx=(5, 15), pady=8)
+
+        # Row 1: Helpful tip
+        tip_lbl = ctk.CTkLabel(pw_controls, text="💡 Tip: Drag sliders to reposition texture. Release slider to re-render. Brightness, contrast & background update instantly.", text_color="#71717a", font=ctk.CTkFont(size=11, slant="italic"))
+        tip_lbl.grid(row=1, column=0, columnspan=7, padx=15, pady=(0, 6), sticky="w")
+
+        # Automatically start initial preview render!
+        self.trigger_live_preview()
+
+    def trigger_live_preview(self):
+        if self.is_preview_running:
+            return
+        
+        selected_weapons = [w for w in all_weapons if self.weapon_vars[w["id"]].get()]
+        if not selected_weapons:
+            w = all_weapons[0] if all_weapons else None
+        else:
+            w = selected_weapons[0]
+
+        if not w:
+            if hasattr(self, 'pw_status_lbl') and self.pw_status_lbl.winfo_exists():
+                self.pw_status_lbl.configure(text="No weapons found!", text_color="#ef4444")
+            return
+
+        selected_tex_paths = [os.path.join(self.in_dir, tex) for tex, var in self.texture_vars.items() if var.get()]
+        if not selected_tex_paths:
+            valid_ext = ('.jpg', '.jpeg', '.png')
+            tex_files = [f for f in os.listdir(self.in_dir) if f.lower().endswith(valid_ext)] if os.path.exists(self.in_dir) else []
+            tex_path = os.path.join(self.in_dir, tex_files[0]) if tex_files else None
+        else:
+            tex_path = selected_tex_paths[0]
+
+        if not tex_path or not os.path.exists(tex_path):
+            if hasattr(self, 'pw_status_lbl') and self.pw_status_lbl.winfo_exists():
+                self.pw_status_lbl.configure(text="Please select a texture from the list!", text_color="#ef4444")
+            return
+
+        tex_name = os.path.basename(tex_path)
+        if hasattr(self, 'pw_title_lbl') and self.pw_title_lbl.winfo_exists():
+            self.pw_title_lbl.configure(text=f"Active Weapon: {w['name']}  |  Texture: {tex_name}")
+
+        if hasattr(self, 'pw_status_lbl') and self.pw_status_lbl.winfo_exists():
+            self.pw_status_lbl.configure(text="⚡ Rendering preview...", text_color="#ef4444")
+
+        self.is_preview_running = True
+        threading.Thread(target=self._run_preview_render, args=(w, tex_path), daemon=True).start()
+
+    def _run_preview_render(self, w, tex_path):
+        preview_out = os.path.join(pipeline_folder, "_preview_temp.png")
+        cmd = [
+            blender_exe, "-b", "--python-exit-code", "1", "-P", blender_script, "--",
+            w["obj"], w["normal"], w["rough"], tex_path, preview_out, "SKIP",
+            "Preview (480p | 8 Samples)", "True", self.engine_var.get(), self.light_var.get(), "PNG", self.compute_var.get(),
+            str(self.tex_off_x_var.get()), str(self.tex_off_y_var.get())
+        ]
+        try:
+            subprocess.run(cmd, check=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            from PIL import Image
+            self.preview_raw_render = Image.open(preview_out).convert("RGBA").copy()
+            try:
+                os.remove(preview_out)
+            except:
+                pass
+            self.after(0, self._render_preview_success)
+        except Exception as e:
+            self.after(0, lambda: self._render_preview_error(str(e)))
+
+    def _render_preview_success(self):
+        self.is_preview_running = False
+        if hasattr(self, 'pw_status_lbl') and self.pw_status_lbl.winfo_exists():
+            self.pw_status_lbl.configure(text="● Ready", text_color="#10b981")
+        self._refresh_preview_postprocess()
+
+    def _render_preview_error(self, err):
+        self.is_preview_running = False
+        if hasattr(self, 'pw_status_lbl') and self.pw_status_lbl.winfo_exists():
+            self.pw_status_lbl.configure(text="Error rendering preview", text_color="#ef4444")
+
+    def _refresh_preview_postprocess(self):
+        if self.preview_raw_render is None:
+            return
+        if not hasattr(self, 'pw_image_lbl') or not self.pw_image_lbl.winfo_exists():
+            return
+
+        from PIL import Image, ImageEnhance
+        render = self.preview_raw_render.copy()
+
+        if abs(self.bright_var.get() - 1.0) > 0.01:
+            render = ImageEnhance.Brightness(render).enhance(self.bright_var.get())
+        if abs(self.cont_var.get() - 1.0) > 0.01:
+            render = ImageEnhance.Contrast(render).enhance(self.cont_var.get())
+
+        bg_colors = {
+            "Dark Grey (Default)": (20, 20, 24, 255),
+            "Deep Blue": (15, 20, 35, 255),
+            "Pure Black": (0, 0, 0, 255),
+            "Pure White": (255, 255, 255, 255),
+            "Green Screen": (0, 255, 0, 255)
+        }
+        if not self.trans_var.get():
+            bg = Image.new("RGBA", render.size, bg_colors.get(self.bg_var.get(), (20, 20, 24, 255)))
+            bg.paste(render, (0, 0), render)
+            render = bg
+
+        disp_w, disp_h = 960, 540
+        render_disp = render.copy()
+        render_disp.thumbnail((disp_w, disp_h))
+        ctk_img = ctk.CTkImage(light_image=render_disp, dark_image=render_disp, size=render_disp.size)
+        
+        self.pw_image_lbl.configure(image=ctk_img, text="")
+        self.pw_image_lbl.image = ctk_img
+
     def _update_preview(self, img_obj):
-        self.preview_lbl.configure(image=img_obj, text="")
-        self.preview_lbl.image = img_obj
+        pass
 
     def start_generation(self):
         self.btn_generate.configure(state="disabled")
@@ -664,7 +939,8 @@ class CS2SkinGeneratorApp(ctk.CTk):
             cmd = [
                 blender_exe, "-b", "--python-exit-code", "1", "-P", blender_script, "--",
                 w["obj"], w["normal"], w["rough"], tex_path, out_img, blend_out, 
-                q_preset, str(self.trans_var.get()), self.engine_var.get(), self.light_var.get(), self.fmt_var.get(), self.compute_var.get()
+                q_preset, str(self.trans_var.get()), self.engine_var.get(), self.light_var.get(), self.fmt_var.get(), self.compute_var.get(),
+                str(self.tex_off_x_var.get()), str(self.tex_off_y_var.get())
             ]
             
             try:

@@ -17,9 +17,9 @@ VSVersionInfo(
         [StringStruct('CompanyName', 'Smokianlord'),
         StringStruct('FileDescription', 'Antigravity CS2 Skin Forge'),
         StringStruct('FileVersion', '1.0.0.0'),
-        StringStruct('InternalName', 'Antigravity_Skin_Forge'),
+        StringStruct('InternalName', 'Antigravity CS2 Skin Forge'),
         StringStruct('LegalCopyright', 'Copyright (c) 2026 Smokianlord'),
-        StringStruct('OriginalFilename', 'Antigravity_Skin_Forge.exe'),
+        StringStruct('OriginalFilename', 'Antigravity CS2 Skin Forge.exe'),
         StringStruct('ProductName', 'Antigravity CS2 Skin Forge'),
         StringStruct('ProductVersion', '1.0.0.0')])
       ]),

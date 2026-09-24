@@ -19,7 +19,7 @@ dist/
 Input_Textures/
 Output_Renders/
 Output_Project_Files/
-Assets/
+Assets/Textures/
 blender_headless_render.py
 
 # OS Files
