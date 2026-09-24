@@ -44,14 +44,16 @@
 
 | File | Size | Format | Description |
 | :--- | :--- | :--- | :--- |
-| **`Antigravity CS2 Skin Forge.exe`** | `~58.2 MB` | Windows Executable | Standalone portable executable (v1.1.0.0, 64-bit). No Python installation required. |
-| **`Antigravity-CS2-Skin-Forge-v1.1.0-SHA256SUMS.txt`** | `97 B` | Plain Text | SHA-256 integrity checksum file. |
+| **`Antigravity-CS2-Skin-Forge-v1.1.0-Windows.zip`** | `~55.5 MB` | ZIP Archive | Recommended standalone bundle containing `Antigravity CS2 Skin Forge.exe`. |
+| **`Antigravity CS2 Skin Forge.exe`** | `~58.2 MB` | Windows Executable | Standalone portable executable (v1.1.0.0, 64-bit). |
+| **`Antigravity-CS2-Skin-Forge-v1.1.0-SHA256SUMS.txt`** | `194 B` | Plain Text | SHA-256 integrity checksum file. |
 | **Source code (zip)** | - | ZIP Archive | Source files, scripts, models, and assets. |
 | **Source code (tar.gz)** | - | TAR.GZ Archive | Source files, scripts, models, and assets. |
 
 ### 🔒 SHA-256 Checksums
 ```text
 b645913e9bb1aa4cd9e7b2e1ed2931cda6f37e7cacb7621eef711be4abccd29b *Antigravity CS2 Skin Forge.exe
+96b64541e1d966c8227acb7998a203b731a1ca82aa3fb8c550fdc16765975b00 *Antigravity-CS2-Skin-Forge-v1.1.0-Windows.zip
 ```
 
 ---

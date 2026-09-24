@@ -1,1 +1,2 @@
 b645913e9bb1aa4cd9e7b2e1ed2931cda6f37e7cacb7621eef711be4abccd29b *Antigravity CS2 Skin Forge.exe
+96b64541e1d966c8227acb7998a203b731a1ca82aa3fb8c550fdc16765975b00 *Antigravity-CS2-Skin-Forge-v1.1.0-Windows.zip
