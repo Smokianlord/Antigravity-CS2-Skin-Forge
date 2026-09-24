@@ -16,7 +16,7 @@
 - **Large 16:9 Viewport (960×540)**: Dedicated high-resolution interactive viewport launched via the top ribbon bar (`👁 Live Preview`).
 - **Interactive Texture Movement**: Real-time **Texture X** and **Texture Y** sliders allow you to slide patterns seamlessly across weapon geometry.
 - **Natural Coordinate Mapping**: Inverted mapping offsets ensure positive slider values slide textures right and up naturally.
-- **Auto-Render on Release (`<ButtonRelease-1>`)**: Releasing the mouse updates and renders the preview in **~1.3–1.8 seconds**.
+- **Auto-Render on Slider Release**: Letting go of the mouse button while dragging texture sliders automatically triggers a fresh preview render in **~1.3–1.8 seconds**.
 - **Instant PIL Compositing (<10ms)**: Adjusting `Brightness`, `Contrast`, `Studio Background`, or `Transparent Background` updates the preview canvas instantly without re-rendering in Blender.
 - **Active Weapon & Texture Switchers**: Switch weapons or texture maps directly inside the preview header.
 - **Reset (0, 0)**: One-click reset to snap texture coordinates back to default alignment.
@@ -51,7 +51,7 @@
 
 ### 🔒 SHA-256 Checksums
 ```text
-dc40bd7157f6595f3443a7ed09c8c6a6af55406fbaced52ba953cee0577821bf *Antigravity CS2 Skin Forge.exe
+b645913e9bb1aa4cd9e7b2e1ed2931cda6f37e7cacb7621eef711be4abccd29b *Antigravity CS2 Skin Forge.exe
 ```
 
 ---

@@ -1025,17 +1025,23 @@ class CS2SkinGeneratorApp(ctk.CTk):
         if hasattr(self, 'pw_status_lbl') and self.pw_status_lbl.winfo_exists():
             self.pw_status_lbl.configure(text="⚡ Rendering preview...", text_color="#ef4444")
 
-        self.is_preview_running = True
-        threading.Thread(target=self._run_preview_render, args=(w, tex_path), daemon=True).start()
+        engine = self.engine_var.get()
+        light = self.light_var.get()
+        compute = self.compute_var.get()
+        off_x = str(self.tex_off_x_var.get())
+        off_y = str(self.tex_off_y_var.get())
 
-    def _run_preview_render(self, w, tex_path):
+        self.is_preview_running = True
+        threading.Thread(target=self._run_preview_render, args=(w, tex_path, engine, light, compute, off_x, off_y), daemon=True).start()
+
+    def _run_preview_render(self, w, tex_path, engine, light, compute, off_x, off_y):
         preview_out = os.path.join(pipeline_folder, "_preview_temp.png")
         cmd = [
             self.blender_exe, "-b", "--python-exit-code", "1", "-P", blender_script, "--",
             os.path.abspath(w["obj"]), w["normal"], w["rough"], os.path.abspath(tex_path),
             os.path.abspath(preview_out), "SKIP",
-            "Preview (540p | 8 Samples)", "True", self.engine_var.get(), self.light_var.get(), "PNG", self.compute_var.get(),
-            str(self.tex_off_x_var.get()), str(self.tex_off_y_var.get())
+            "Preview (540p | 8 Samples)", "True", engine, light, "PNG", compute,
+            off_x, off_y
         ]
         try:
             subprocess.run(cmd, check=True, creationflags=subprocess.CREATE_NO_WINDOW)

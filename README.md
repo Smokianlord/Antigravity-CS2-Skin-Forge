@@ -4,22 +4,56 @@
 
 **An automated, headless Python pipeline for generating photorealistic Counter-Strike 2 weapon skins using Blender's CYCLES & EEVEE engines.**
 
+[![Release](https://img.shields.io/badge/Release-v1.1.0-red.svg)](https://github.com/Smokianlord/Antigravity-CS2-Skin-Forge/releases/tag/v1.1.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Blender 4.0+](https://img.shields.io/badge/blender-4.0+-orange.svg)](https://www.blender.org/)
 [![CustomTkinter](https://img.shields.io/badge/UI-CustomTkinter-blueviolet)](https://github.com/TomSchimansky/CustomTkinter)
 
+<br>
+
+<p align="center">
+  <img src="docs/images/app_interface.png" alt="Antigravity CS2 Skin Forge v1.1.0 Main Interface" width="950">
+</p>
+
 </div>
 
 ## 📖 Description
 
-Antigravity CS2 Skin Forge is a professional-grade UI and rendering pipeline built specifically for Counter-Strike 2 skin creators. It completely automates the process of rendering 3D skin showcases. 
+**Antigravity CS2 Skin Forge** (version **v1.1.0**), created by **Smokianlord**, is a professional-grade UI and rendering pipeline built specifically for Counter-Strike 2 skin creators, workshop designers, and 3D artists. It completely automates the process of mapping 2D pattern textures onto 3D CS2 weapon models, framing them using mathematical bounding-box orthographic cameras, rendering them through headless Blender (Cycles / Eevee) with studio PBR materials, post-processing them in real time, and exporting production-ready showcases and `.blend` project files in batch.
 
-Simply drop your 2D design textures into the Input folder, select your target weapons (e.g. AK-47, AWP, M4A1-S) via the CustomTkinter UI, position the pattern with real-time X/Y offset sliders, check your skin placement using the large **Live Preview Window**, and click **Generate**. The application silently boots Blender in headless mode, automatically aligns cameras to perfectly fit each weapon's bounds, configures CYCLES raytracing materials with official normal/roughness maps, lights the scene, applies post-processing filters, and outputs production-ready transparent PNGs.
+---
 
-### ✨ Key Features
+## 👁️ Dedicated Large Live Preview Window (1060×720)
+
+Clicking **`👁 Live Preview`** on the top ribbon bar launches a dedicated high-resolution studio with a large **960×540** 16:9 viewport.
+
+<p align="center">
+  <img src="docs/images/live_preview_window.png" alt="Live Skin Preview Studio (1060x720)" width="950">
+</p>
+
+- **Real-Time Texture Movement**: Slide your pattern horizontally (**Texture X**) and vertically (**Texture Y**) across the weapon geometry.
+- **Natural Coordinate Inversion**: Inverted mapping location offsets ensure moving sliders right moves textures right, and sliders up moves textures up.
+- **Auto-Render on Slider Release**: Letting go of the mouse button auto-renders the preview in **~1.3–1.8 seconds**.
+- **Instant PIL Compositing (<10ms)**: Adjusting `Brightness`, `Contrast`, `Studio Background`, or `Transparent Background` updates the preview canvas instantly via PIL without re-rendering in Blender.
+- **Direct Switchers & Reset**: Switch active weapon models and textures directly in the preview header, or click **Reset (0, 0)** to snap back to default center.
+
+---
+
+## 🖼️ Showcase Gallery (Rendered via Headless Cycles Raytracing)
+
+| AK-47 Showcase | AWP Showcase |
+| :---: | :---: |
+| <img src="docs/images/showcase_weapon_rif_ak47.png" width="450" alt="AK-47 Skin Showcase"> | <img src="docs/images/showcase_weapon_snip_awp.png" width="450" alt="AWP Skin Showcase"> |
+| **Desert Eagle Showcase** | **M4A1-S Showcase** |
+| <img src="docs/images/showcase_weapon_pist_deagle.png" width="450" alt="Desert Eagle Skin Showcase"> | <img src="docs/images/showcase_weapon_rif_m4a1_silencer.png" width="450" alt="M4A1-S Skin Showcase"> |
+
+---
+
+## ✨ Key Features
+
 - **All 35 CS2 Weapons Included**: 3D OBJ weapon models are bundled directly inside the standalone executable and organized cleanly in `Assets/Models`.
-- **Dedicated Live Preview Window (1060x720)**: Large 960x540 viewport launched from the top ribbon bar (`👁 Live Preview`) with real-time Texture X & Texture Y positioning sliders.
+- **Dedicated Live Preview Window (1060x720)**: Large 960x540 viewport with real-time Texture X & Texture Y positioning sliders.
 - **Headless Blender Integration**: Directly interfaces with Blender (CYCLES/EEVEE) in the background without needing to open the software.
 - **Smart Framing & Alignment**: Uses global bounding-box math and orthographic scales to perfectly frame any weapon size, from a Glock to an AWP, at consistent scales.
 - **Auto-Material Generation**: Automatically extracts and injects official Valve CS2 normal and roughness maps into the node tree.
@@ -35,7 +69,7 @@ Simply drop your 2D design textures into the Input folder, select your target we
 ### 1. Prerequisites
 You must have the following software installed:
 * [Python 3.10+](https://www.python.org/downloads/)
-* [Blender](https://www.blender.org/download/) (Installed via Steam at `C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe` or update the path in `gui_app.py`)
+* [Blender](https://www.blender.org/download/) (Installed via Steam at `C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe` or automatically discovered across standard system paths)
 
 ### 2. Clone the Repository
 ```bash
@@ -55,7 +89,7 @@ pip install -r requirements.txt
 ## 🚀 Usage
 
 ### Option A: Running the Standalone Executable (.exe)
-Double-click `Antigravity CS2 Skin Forge.exe`. The 35 official weapon models are bundled directly inside the executable, so it runs completely out of the box!
+Download or double-click `Antigravity CS2 Skin Forge.exe`. The 35 official weapon models are bundled directly inside the executable, so it runs completely out of the box!
 
 ### Option B: Running from Python Source
 ```bash
@@ -92,6 +126,12 @@ Antigravity-CS2-Skin-Forge/
 ├── icon.ico                         # Application crosshair icon
 ├── CHAT_AND_DEVELOPMENT_LOG.md      # Full chronological project history & changelog
 │
+├── docs/                            # Documentation and media
+│   └── images/                      # App screenshots & weapon showcases
+│       ├── app_interface.png        # Main GUI preview
+│       ├── live_preview_window.png  # Dedicated Live Preview Studio screenshot
+│       └── showcase_*.png           # Photorealistic weapon renders
+│
 ├── Input_Textures/                  # Drop your custom weapon textures here
 ├── Output_Renders/                  # Rendered showcases appear here
 ├── Output_Project_Files/            # Automatically saved .blend projects
@@ -105,10 +145,8 @@ Antigravity-CS2-Skin-Forge/
 
 ## 🔧 Configuration
 
-If your Blender is installed in a custom location, edit line 21 in `gui_app.py`:
-```python
-blender_exe = r"C:\Path\To\Your\Blender\blender.exe"
-```
+Blender is automatically discovered on your system (Steam paths, standard installation directories, and system PATH). You can also configure a custom Blender executable path directly in the application via:
+`Top Ribbon` -> `Configure` -> `Set Blender Executable Path`
 
 ---
 
