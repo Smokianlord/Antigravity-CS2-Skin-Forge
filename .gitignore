@@ -25,3 +25,7 @@ blender_headless_render.py
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Contest & Scratch Generator Scripts
+generate_blender_assets.py
+generate_media_and_textures.py

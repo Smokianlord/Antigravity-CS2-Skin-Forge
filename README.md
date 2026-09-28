@@ -4,7 +4,7 @@
 
 **An automated, headless Python pipeline for generating photorealistic Counter-Strike 2 weapon skins using Blender's CYCLES & EEVEE engines.**
 
-[![Release](https://img.shields.io/badge/Release-v1.1.0-red.svg)](https://github.com/Smokianlord/Antigravity-CS2-Skin-Forge/releases/tag/v1.1.0)
+[![Release](https://img.shields.io/badge/Release-v1.2.5-red.svg)](https://github.com/Smokianlord/Antigravity-CS2-Skin-Forge/releases/tag/v1.2.5)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Blender 4.0+](https://img.shields.io/badge/blender-4.0+-orange.svg)](https://www.blender.org/)
@@ -13,30 +13,44 @@
 <br>
 
 <p align="center">
-  <img src="docs/images/app_interface.png" alt="Antigravity CS2 Skin Forge v1.1.0 Main Interface" width="950">
+  <img src="docs/images/app_interface.png" alt="Antigravity CS2 Skin Forge v1.2.5 Main Interface" width="950">
 </p>
 
 </div>
 
 ## 📖 Description
 
-**Antigravity CS2 Skin Forge** (version **v1.1.0**), created by **Smokianlord**, is a professional-grade UI and rendering pipeline built specifically for Counter-Strike 2 skin creators, workshop designers, and 3D artists. It completely automates the process of mapping 2D pattern textures onto 3D CS2 weapon models, framing them using mathematical bounding-box orthographic cameras, rendering them through headless Blender (Cycles / Eevee) with studio PBR materials, post-processing them in real time, and exporting production-ready showcases and `.blend` project files in batch.
+**Antigravity CS2 Skin Forge** (version **v1.2.5**), created by **Smokianlord**, is a professional-grade UI and rendering pipeline built specifically for Counter-Strike 2 skin creators, workshop designers, and 3D artists. It completely automates the process of mapping 2D pattern textures onto 3D CS2 weapon models, framing them using mathematical bounding-box orthographic cameras, rendering them through headless Blender (Cycles / Eevee) with studio PBR materials, post-processing them in real time, and exporting production-ready showcases and `.blend` project files in batch.
 
 ---
 
-## 👁️ Dedicated Large Live Preview Window (1060×720)
+## 👁️ Dedicated Large Live Preview Window (Adaptive 16:9 Viewport)
 
-Clicking **`👁 Live Preview`** on the top ribbon bar launches a dedicated high-resolution studio with a large **960×540** 16:9 viewport.
+Clicking **`Live Preview`** on the top ribbon bar launches a dedicated high-resolution studio with a large 16:9 responsive viewport that stays permanently pinned on top of the application.
 
 <p align="center">
-  <img src="docs/images/live_preview_window.png" alt="Live Skin Preview Studio (1060x720)" width="950">
+  <img src="docs/images/live_preview_window.png" alt="Live Skin Preview Studio" width="950">
 </p>
 
-- **Real-Time Texture Movement**: Slide your pattern horizontally (**Texture X**) and vertically (**Texture Y**) across the weapon geometry.
-- **Natural Coordinate Inversion**: Inverted mapping location offsets ensure moving sliders right moves textures right, and sliders up moves textures up.
-- **Auto-Render on Slider Release**: Letting go of the mouse button auto-renders the preview in **~1.3–1.8 seconds**.
-- **Instant PIL Compositing (<10ms)**: Adjusting `Brightness`, `Contrast`, `Studio Background`, or `Transparent Background` updates the preview canvas instantly via PIL without re-rendering in Blender.
-- **Direct Switchers & Reset**: Switch active weapon models and textures directly in the preview header, or click **Reset (0, 0)** to snap back to default center.
+- **🔄 Texture Mirroring & Reflection (Flip X & Flip Y)**: Instant horizontal (`⇄ Flip X`) and vertical (`⇅ Flip Y`) texture reflection with center-anchored UV transformation math. Mirrors patterns across weapon axes without drifting out of position.
+- **⚡ 2x Faster Debounced Preview (~160ms)**: Instant feedback during slider interaction, powered by an optimized 160ms debounce timer and real-time bilinear viewport scaling.
+- **🎯 Permanently Visible Hero Generate Button**: Pinned unconditionally to the bottom edge of the window (`side="bottom"` priority), guaranteeing immediate access on any display size.
+- **Calibrated True-Color Fidelity**: Uses `Standard` tone curve colorimetry and physically calibrated lighting multipliers, completely eliminating washed-out or bleached chalk highlights on weapon artwork.
+- **Precision Stepper Arrow Buttons (`[ ◀ ]` & `[ ▶ ]`)**: Fine-grained ±0.01 (offsets / brightness / contrast / saturation) and ±0.05 (scale) micro-adjustments with instant click precision.
+- **Keyboard Arrow Key Nudge**: Press `Left`/`Right`/`Up`/`Down` to nudge sliders directly from your keyboard. Hold `Shift` for 5x larger increments.
+- **Visual Selection Highlight (`►`)**: The currently active slider illuminates in crimson red (`#ef4444`) with an active indicator pointer `►`, glowing stepper button borders, and bold accent badges.
+- **Rapid Navigation (`Tab` & `1`–`6`)**: Cycle all 6 sliders sequentially using `Tab` / `Shift+Tab` or immediately jump to any slider with keys `1` through `6` (`tx`, `ty`, `scale`, `bright`, `cont`, `sat`).
+- **Dynamic Lighting Rig Selector**: Switch directly between Studio Pro, Soft Workbench, Bright Flat, and Dark Cinematic presets from inside the preview window with instant debounced rendering.
+- **Permanent Topmost Pinning**: Native Z-order transient locking ensures the preview window stays permanently on top without cluttering the interface with redundant toggle checkboxes.
+- **Real-Time Saturation & Color Vibrance (<1ms)**: Fine-tune texture saturation from monochrome (`0.00`) to vibrant richness (`2.00`) with zero render lag.
+- **Unclipped Responsive Sliders**: Intelligent layout hierarchy reserves full space for all positioning, scale, mirroring, and FX controls (`side="bottom"` priority), dynamically scaling the render viewport to prevent clipping on any monitor.
+- **High-DPI Vector Icons & 3D Tactile Buttons**: Studio-grade 4x supersampled geometric icons with beveled 3D rim highlights for tactile, customer-grade usability.
+- **Real-Time Texture Movement & Resizing**: Slide patterns horizontally (**Texture X**) and vertically (**Texture Y**), and scale textures (**Texture Scale: 0.10x – 5.00x**) with symmetrical center-anchored scaling.
+- **Dedicated Image File Resizer**: One-click texture file resizing (`Resize Image`) supporting 4K, 2K, 1K, 512px, 50%, and custom dimensions with Lanczos resampling.
+- **OptiX GPU + CPU Hybrid Raytracing**: Hardware-accelerated Ray Tracing & Tensor AI Denoising delivers ultra-fast previews in **~0.17s–0.3s**.
+- **Auto-Render on Slider Release & Pending Queue**: Releasing sliders automatically triggers preview renders, while a non-blocking queue guarantees rapid adjustments are never dropped.
+- **Instant PIL Compositing (<10ms)**: Adjusting `Brightness`, `Contrast`, `Saturation`, `Studio Background`, or `Transparent Background` updates the preview canvas instantly via PIL without re-rendering in Blender.
+- **Direct Switchers & Reset**: Switch active weapon models and textures directly in the preview header, or click **Reset All** to snap back to default center and unmirror, or **Default FX** to reset color grading.
 
 ---
 
@@ -53,13 +67,13 @@ Clicking **`👁 Live Preview`** on the top ribbon bar launches a dedicated high
 ## ✨ Key Features
 
 - **All 35 CS2 Weapons Included**: 3D OBJ weapon models are bundled directly inside the standalone executable and organized cleanly in `Assets/Models`.
-- **Dedicated Live Preview Window (1060x720)**: Large 960x540 viewport with real-time Texture X & Texture Y positioning sliders.
-- **Headless Blender Integration**: Directly interfaces with Blender (CYCLES/EEVEE) in the background without needing to open the software.
+- **Dedicated Live Preview Window**: Large 16:9 adaptive viewport with permanent topmost locking, 6 precision sliders, vector stepper buttons, and instant debounced rendering.
+- **Headless Blender Integration**: Directly interfaces with Blender (CYCLES/EEVEE) in the background with OptiX GPU + CPU Hybrid acceleration.
 - **Smart Framing & Alignment**: Uses global bounding-box math and orthographic scales to perfectly frame any weapon size, from a Glock to an AWP, at consistent scales.
-- **Auto-Material Generation**: Automatically extracts and injects official Valve CS2 normal and roughness maps into the node tree.
+- **Auto-Material Generation**: Automatically extracts and injects official Valve CS2 normal and roughness maps into calibrated dielectric PBR shaders (`Metallic = 0.02`, `Specular = 0.25`).
 - **Batch Processing**: Render hundreds of weapon-texture permutations automatically ("All Combinations" or "Random Match").
-- **Dynamic Environments**: 3 unique lighting presets (Studio Pro, Bright Flat, Dark Cinematic) and 5 dynamic background compositions (Dark Grey, Deep Blue, Pure White, Pure Black, Green Screen).
-- **Post-Processing**: Built-in Brightness and Contrast slider integration via Python `PIL.ImageEnhance`.
+- **Dynamic Lighting Environments**: 4 studio lighting rigs (`Studio Pro`, `Soft Workbench`, `Bright Flat`, `Dark Cinematic`) with live switching in both preview and render pipelines.
+- **Full Color Grading Suite**: Built-in Brightness, Contrast, and Saturation slider integration via Python `PIL.ImageEnhance` with instant (<1ms) real-time response.
 - **Slide-up Folder Drawer**: Bottom bar with one-click copyable directory paths for easy file management.
 
 ---
