@@ -19,6 +19,8 @@ dist/
 Input_Textures/
 Output_Renders/
 Output_Project_Files/
+_preview_cache/
+_preview_temp.png
 Assets/Textures/
 blender_headless_render.py
 
