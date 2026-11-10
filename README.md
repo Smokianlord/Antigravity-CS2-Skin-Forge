@@ -129,7 +129,6 @@ Antigravity-CS2-Skin-Forge/
 ├── requirements.txt                 # Python dependencies
 ├── version.txt                      # Windows Executable metadata for PyInstaller
 ├── icon.ico                         # Application crosshair icon
-├── CHAT_AND_DEVELOPMENT_LOG.md      # Full chronological project history & changelog
 │
 ├── docs/                            # Documentation and media
 │   └── images/                      # App screenshots & weapon showcases
