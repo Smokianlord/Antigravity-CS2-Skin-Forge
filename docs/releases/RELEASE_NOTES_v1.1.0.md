@@ -4,7 +4,6 @@
 [![Blender](https://img.shields.io/badge/Blender-4.0%2B%20%7C%205.x-orange.svg)](https://www.blender.org/)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078d7.svg)](https://microsoft.com)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Antigravity CS2 Skin Forge (v1.1.0)** is a standalone desktop application for Counter-Strike 2 skin creators, workshop artists, and 3D weapon designers. Created by **Smokianlord**, it automates mapping 2D pattern textures onto 3D CS2 weapon models, framing them using mathematical bounding-box orthographic cameras, rendering them through headless Blender (Cycles / Eevee) with studio PBR materials, post-processing them in real time, and batch exporting production-ready showcases and `.blend` project files.
 
@@ -92,5 +91,4 @@ python gui_app.py
 
 ## 👨‍💻 Credits & Author
 - **Author**: Smokianlord
-- **License**: MIT License
 - **Framework**: CustomTkinter, Python 3.12, Blender 3D Engine, Pillow (PIL)

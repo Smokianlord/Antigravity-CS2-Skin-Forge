@@ -62,7 +62,3 @@ Build the exe:
 ```bash
 pyinstaller --onefile --noconsole --name "Antigravity CS2 Skin Forge" --icon="icon.ico" --add-data "icon.ico;." --add-data "Assets/Models;Assets/Models" --version-file=version.txt gui_app.py
 ```
-
-## License
-
-MIT, see [LICENSE](LICENSE).

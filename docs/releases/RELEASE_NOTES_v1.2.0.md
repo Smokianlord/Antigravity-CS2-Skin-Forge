@@ -4,7 +4,6 @@
 [![Blender](https://img.shields.io/badge/Blender-4.0%2B%20%7C%205.x-orange.svg)](https://www.blender.org/)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078d7.svg)](https://microsoft.com)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Antigravity CS2 Skin Forge (v1.2.0)**, created by **Smokianlord**, is a professional-grade UI and automated rendering studio for Counter-Strike 2 skin designers and 3D weapon artists. Version 1.2.0 brings full **Image Resizing & Scaling capabilities** across the entire pipeline, alongside blazing-fast **GPU (OptiX) + CPU Hybrid Hardware Acceleration** that accelerates preview and production renders up to 4x faster.
 
