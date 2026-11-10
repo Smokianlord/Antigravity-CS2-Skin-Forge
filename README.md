@@ -1,165 +1,68 @@
-<div align="center">
-  
-# Antigravity CS2 Skin Forge 🔫🎨
+# Antigravity CS2 Skin Forge
 
-**An automated, headless Python pipeline for generating photorealistic Counter-Strike 2 weapon skins using Blender's CYCLES & EEVEE engines.**
+A Windows app that puts your own 2D pattern images onto CS2 weapon models and renders them with Blender, so you can see what a skin looks like on the gun.
 
-[![Release](https://img.shields.io/badge/Release-v1.3.0-red.svg)](https://github.com/Smokianlord/Antigravity-CS2-Skin-Forge/releases/tag/v1.3.0)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Blender 4.0+](https://img.shields.io/badge/blender-4.0+-orange.svg)](https://www.blender.org/)
-[![PySide6](https://img.shields.io/badge/UI-PySide6%20(Qt)-41cd52)](https://doc.qt.io/qtforpython-6/)
+<img src="docs/images/app_interface.png" alt="Antigravity CS2 Skin Forge main window" width="950">
 
-<br>
+## What it does
 
-<p align="center">
-  <img src="docs/images/app_interface.png" alt="Antigravity CS2 Skin Forge v1.3.0 Main Interface" width="950">
-</p>
+- Takes your texture images and maps them onto any of the 35 bundled CS2 weapon models.
+- Shows a live 3D preview next to the controls while you adjust placement, scale, flip and colour.
+- Renders the final images in the background with Blender (Cycles or Eevee) and saves `.blend` project files.
+- Can render many weapon/texture combinations in one batch.
 
-</div>
+<img src="docs/images/placement_tab.png" alt="Placement tab with the live preview" width="950">
 
-## 📖 Description
+## Example renders
 
-**Antigravity CS2 Skin Forge** (version **v1.3.0**), created by **Smokianlord**, is a professional-grade UI and rendering pipeline built specifically for Counter-Strike 2 skin creators, workshop designers, and 3D artists. It completely automates the process of mapping 2D pattern textures onto 3D CS2 weapon models, framing them using mathematical bounding-box orthographic cameras, rendering them through headless Blender (Cycles / Eevee) with studio PBR materials, post-processing them in real time, and exporting production-ready showcases and `.blend` project files in batch.
-
----
-
-## 🎨 Designed for Designers: Live Preview Always Beside Your Controls
-
-The **3D preview stays on screen at all times** while every feature lives in its own tab, so you never have to hide the result to change a setting. Scroll to zoom, drag to pan, double-click to fit, and switch between the **3D Render** and the **Source texture** with one click.
-
-<p align="center">
-  <img src="docs/images/placement_tab.png" alt="Placement tab with the live 3D preview" width="950">
-</p>
-
-- **🖼️ Texture thumbnails + big preview**: The **Textures** tab shows every image as a thumbnail; click to include it in the batch, and the last one you click is shown large below the grid and rendered live on the weapon. Add images with **＋ Add images…** or just drag files onto the window.
-- **🗂️ One tab per job**: Textures · Weapons · Placement · Color · Render · Output.
-- **🎚️ Precise sliders**: Drag, type an exact value, or nudge with the arrow keys. Each slider has its own Reset.
-- **⚡ Smooth UI**: Rebuilt on Qt (PySide6), so resizing and scrolling stay fluid (~5 ms per resize step instead of ~380 ms on the old toolkit).
-- **🚀 Faster previews**: Preview renders use cached 1K copies of the large 4K weapon maps.
-- **🌈 Color grading**: Brightness / Contrast / Saturation update instantly and are applied identically to the final export (alpha is preserved).
-- **🪟 Background & transparency**: Checkerboard for transparent, or Dark Grey / Deep Blue / Pure Black / Pure White / Green Screen.
-- **🔁 Flip X / Flip Y**, offsets and scale with center-anchored UV math.
-- **🔍 Weapon search**, grouped by category, with Select all / Clear / Random 3.
-- **📐 Resize…**: Make a resized copy of a texture (4096 / 2048 / 1024 / 512 or custom); the original is never overwritten.
-- **⛔ Cancel** a running batch, and a clear error message if Blender can't be found.
-
----
-
-## 🖼️ Showcase Gallery (Rendered via Headless Cycles Raytracing)
-
-| AK-47 Showcase | AWP Showcase |
+| AK-47 | AWP |
 | :---: | :---: |
-| <img src="docs/images/showcase_weapon_rif_ak47.png" width="450" alt="AK-47 Skin Showcase"> | <img src="docs/images/showcase_weapon_snip_awp.png" width="450" alt="AWP Skin Showcase"> |
-| **Desert Eagle Showcase** | **M4A1-S Showcase** |
-| <img src="docs/images/showcase_weapon_pist_deagle.png" width="450" alt="Desert Eagle Skin Showcase"> | <img src="docs/images/showcase_weapon_rif_m4a1_silencer.png" width="450" alt="M4A1-S Skin Showcase"> |
+| <img src="docs/images/showcase_weapon_rif_ak47.png" width="450" alt="AK-47 render"> | <img src="docs/images/showcase_weapon_snip_awp.png" width="450" alt="AWP render"> |
+| **Desert Eagle** | **M4A1-S** |
+| <img src="docs/images/showcase_weapon_pist_deagle.png" width="450" alt="Desert Eagle render"> | <img src="docs/images/showcase_weapon_rif_m4a1_silencer.png" width="450" alt="M4A1-S render"> |
 
----
+## Features
 
-## ✨ Key Features
+- Tabs for each step: Textures, Weapons, Placement, Color, Render, Output.
+- Add textures with the button or by dragging files onto the window.
+- Sliders you can drag, type into or nudge with the arrow keys, each with a reset.
+- Brightness, contrast and saturation, applied the same way to the preview and the final render.
+- Transparent background or a solid colour (dark grey, deep blue, black, white, green screen).
+- Weapon search by category, plus Select all, Clear and Random 3.
+- 4 lighting setups: Studio Pro, Soft Workbench, Bright Flat, Dark Cinematic.
+- Make a resized copy of a texture (4096 / 2048 / 1024 / 512 or custom). The original is never changed.
+- Cancel a running batch at any time.
 
-- **All 35 CS2 Weapons Included**: 3D OBJ weapon models are bundled directly inside the standalone executable and organized cleanly in `Assets/Models`.
-- **Headless Blender Integration**: Directly interfaces with Blender (CYCLES/EEVEE) in the background with OptiX GPU + CPU Hybrid acceleration.
-- **Smart Framing & Alignment**: Uses global bounding-box math and orthographic scales to perfectly frame any weapon size, from a Glock to an AWP, at consistent scales.
-- **Auto-Material Generation**: Automatically extracts and injects official Valve CS2 normal and roughness maps into calibrated dielectric PBR shaders (`Metallic = 0.02`, `Specular = 0.25`).
-- **Batch Processing**: Render hundreds of weapon-texture permutations automatically ("All Combinations" or "Random Match").
-- **Dynamic Lighting Environments**: 4 studio lighting rigs (`Studio Pro`, `Soft Workbench`, `Bright Flat`, `Dark Cinematic`) with live switching in both preview and render pipelines.
-- **Full Color Grading Suite**: Built-in Brightness, Contrast, and Saturation slider integration via Python `PIL.ImageEnhance` with instant (<1ms) real-time response.
-- **Slide-up Folder Drawer**: Bottom bar with one-click copyable directory paths for easy file management.
+## Requirements
 
----
+- Windows
+- [Blender](https://www.blender.org/download/) 4.0 or newer. The app finds it automatically (including the Steam version); otherwise set `blender.exe` in the **Output** tab.
 
-## 🛠️ Installation
+## How to use
 
-### 1. Prerequisites
-You must have the following software installed:
-* [Python 3.10+](https://www.python.org/downloads/)
-* [Blender](https://www.blender.org/download/) (Installed via Steam at `C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe` or automatically discovered across standard system paths)
+1. Run `Antigravity CS2 Skin Forge.exe`. The weapon models are built into it.
+2. **Textures:** add your images and click the ones to include.
+3. **Weapons:** tick the weapons to render.
+4. **Placement:** position the pattern while watching the preview.
+5. **Color:** adjust brightness, contrast, saturation and background.
+6. **Render:** choose lighting, quality, engine (Cycles GPU is best) and batch mode.
+7. Click **Generate skins & renders**.
 
-### 2. Clone the Repository
-```bash
-git clone https://github.com/Smokianlord/Antigravity-CS2-Skin-Forge.git
-cd Antigravity-CS2-Skin-Forge
-```
+## Run from source
 
-### 3. Install Dependencies
+Python 3.12+:
+
 ```bash
 pip install -r requirements.txt
-```
-
-*(Required packages: `PySide6-Essentials`, `Pillow`)*
-
----
-
-## 🚀 Usage
-
-### Option A: Running the Standalone Executable (.exe)
-Download or double-click `Antigravity CS2 Skin Forge.exe`. The 35 official weapon models are bundled directly inside the executable, so it runs completely out of the box!
-
-### Option B: Running from Python Source
-```bash
 python gui_app.py
 ```
 
-### Compiling to a Standalone Executable (.exe)
-To compile a standalone `.exe` with the weapon models bundled inside:
+Build the exe:
+
 ```bash
 pyinstaller --onefile --noconsole --name "Antigravity CS2 Skin Forge" --icon="icon.ico" --add-data "icon.ico;." --add-data "Assets/Models;Assets/Models" --version-file=version.txt gui_app.py
 ```
 
-### Workflow
-1. Launch the app. In the **Textures** tab click **＋ Add images…** (or drag image files onto the window) and click thumbnails to include them; the last one clicked is previewed large and on the weapon.
-2. In **Weapons**, check the models to render (search, Select all, Random 3). Click a weapon name to see it in the live preview.
-3. In **Placement**, position the pattern (X / Y / Scale / Flip) while watching the live 3D preview. Use **Source texture** to compare with the original image.
-4. In **Color**, adjust Brightness / Contrast / Saturation; pick the background (or Transparent) above the preview.
-5. In **Render**, choose Lighting, Quality, Engine (Cycles GPU recommended), Format and batch mode. **Output** sets folders and the Blender path.
-6. Click **Generate skins & renders** and watch progress at the bottom; **Cancel** stops after the current render.
+## License
 
----
-
-## 📂 Directory Structure
-
-```text
-Antigravity-CS2-Skin-Forge/
-│
-├── "Antigravity CS2 Skin Forge.exe"  # Standalone compiled executable (all models bundled)
-├── skinforge_core.py                # Assets, Blender discovery, render commands (no UI)
-├── gui_app.py                       # Qt (PySide6) application window
-├── blender_headless_render.py       # Headless Blender execution script
-├── requirements.txt                 # Python dependencies
-├── version.txt                      # Windows Executable metadata for PyInstaller
-├── icon.ico                         # Application crosshair icon
-│
-├── docs/                            # Documentation and media
-│   └── images/                      # App screenshots & weapon showcases
-│       ├── app_interface.png        # Main GUI preview
-│       ├── placement_tab.png        # Placement tab + live preview screenshot
-│       └── showcase_*.png           # Photorealistic weapon renders
-│
-├── Input_Textures/                  # Drop your custom weapon textures here
-├── Output_Renders/                  # Rendered showcases appear here
-├── Output_Project_Files/            # Automatically saved .blend projects
-│
-└── Assets/                          # Fully self-contained local assets
-    ├── Models/                      # All 35 official weapon .obj models
-    └── Textures/                    # Valve CS2 normal & roughness maps
-```
-
----
-
-## 🔧 Configuration
-
-Blender is automatically discovered on your system (Steam paths, standard installation directories, and system PATH). You can also configure a custom Blender executable path directly in the application via:
-`Top Ribbon` -> `Configure` -> `Set Blender Executable Path`
-
----
-
-## 📝 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
----
-
-<div align="center">
-  <i>Created with ❤️ by Smokianlord</i>
-</div>
+MIT, see [LICENSE](LICENSE).
