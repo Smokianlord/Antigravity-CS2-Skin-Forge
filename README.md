@@ -62,3 +62,23 @@ Build the exe:
 ```bash
 pyinstaller --onefile --noconsole --name "Antigravity CS2 Skin Forge" --icon="icon.ico" --add-data "icon.ico;." --add-data "Assets/Models;Assets/Models" --version-file=version.txt gui_app.py
 ```
+
+## Lighting and materials
+
+Studio Pro uses directional overhead reflections, an offset front softbox and
+restrained fill to keep paint bright while defining edges, rivets and recesses.
+The material reads the roughness map's red channel explicitly and uses a thin
+paint topcoat that follows the weapon's normal map. Lights are placed relative
+to the camera so differently oriented models receive consistent illumination.
+
+Blender 4.2+ uses Khronos PBR Neutral to control highlights; Blender 4.0/4.1 falls
+back to Standard. Select Studio Pro and reset the Color sliders to 1.0 to judge
+the material without additional color adjustments. Both Cycles and Eevee were
+checked with Blender 5.3.0.
+
+The renderer lives in `blender_headless_render.py` beside the executable. Updating
+this script applies the lighting changes without rebuilding the executable.
+Keep it alongside the executable when distributing the app.
+
+This remains a Blender paint preview. Exact CS2 appearance requires checking the
+finish in the [CS2 Workshop Item Editor](https://www.counter-strike.net/workshop/workshopfinishes).

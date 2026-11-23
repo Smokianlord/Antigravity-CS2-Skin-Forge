@@ -22,7 +22,6 @@ Output_Project_Files/
 _preview_cache/
 _preview_temp.png
 Assets/Textures/
-blender_headless_render.py
 
 # OS Files
 .DS_Store
