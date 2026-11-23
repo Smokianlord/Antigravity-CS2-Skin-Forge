@@ -7,7 +7,7 @@ import sys
 
 from PIL import Image
 
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.3.1"
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tga")
 PREVIEW_MAX_TEXTURE = 1024
 
@@ -20,6 +20,8 @@ else:
 
 icon_path = os.path.join(resource_folder, "icon.ico")
 blender_script = os.path.join(pipeline_folder, "blender_headless_render.py")
+if not os.path.isfile(blender_script):
+    blender_script = os.path.join(resource_folder, "blender_headless_render.py")
 default_input_folder = os.path.join(pipeline_folder, "Input_Textures")
 default_out_folder = os.path.join(pipeline_folder, "Output_Renders")
 default_blend_folder = os.path.join(pipeline_folder, "Output_Project_Files")

@@ -1118,6 +1118,9 @@ class MainWindow(QMainWindow):
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "--self-test":
+        from release_checks import run
+        sys.exit(run(sys.argv[2:]))
     if sys.platform == "win32":
         try:
             import ctypes

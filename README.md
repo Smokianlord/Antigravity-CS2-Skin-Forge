@@ -2,6 +2,19 @@
 
 A Windows app that puts your own 2D pattern images onto CS2 weapon models and renders them with Blender, so you can see what a skin looks like on the gun.
 
+
+## Download v1.3.1 for Windows
+
+[**Download the Windows ZIP**](https://github.com/Smokianlord/Antigravity-CS2-Skin-Forge/releases/download/v1.3.1/Antigravity-CS2-Skin-Forge-v1.3.1-Windows.zip) · [Release notes](https://github.com/Smokianlord/Antigravity-CS2-Skin-Forge/releases/tag/v1.3.1) · [SHA-256 checksums](https://github.com/Smokianlord/Antigravity-CS2-Skin-Forge/releases/download/v1.3.1/Antigravity-CS2-Skin-Forge-v1.3.1-SHA256SUMS.txt)
+
+Extract the **entire ZIP**, then run `Antigravity CS2 Skin Forge.exe`. Keep the included `Assets/Textures` folder and renderer beside the app. [Blender](https://www.blender.org/download/) 4.0+ is required separately.
+
+### New in v1.3.1: brighter paint, more realistic surface detail
+
+Controlled highlights preserve the pattern colors, while directional reflections and clearer shadows reveal the weapon's shape. Roughness handling is corrected, and the download now includes the normal and roughness maps used by the renderer. Select **Studio Pro** and reset Color sliders to **1.0** for the intended look.
+
+<img src="docs/images/rendering_fix_comparison_v1.3.1.jpg" alt="Rendering comparison: previous flat lighting above, updated reflections and shadows below" width="950">
+
 <img src="docs/images/app_interface.png" alt="Antigravity CS2 Skin Forge main window" width="950">
 
 ## What it does
@@ -13,7 +26,7 @@ A Windows app that puts your own 2D pattern images onto CS2 weapon models and re
 
 <img src="docs/images/placement_tab.png" alt="Placement tab with the live preview" width="950">
 
-## Example renders
+## Example renders — v1.3.1
 
 | AK-47 | AWP |
 | :---: | :---: |
@@ -40,7 +53,7 @@ A Windows app that puts your own 2D pattern images onto CS2 weapon models and re
 
 ## How to use
 
-1. Run `Antigravity CS2 Skin Forge.exe`. The weapon models are built into it.
+1. Extract the full Windows ZIP and run `Antigravity CS2 Skin Forge.exe`. The models are built in; the included `Assets/Textures` folder supplies surface maps.
 2. **Textures:** add your images and click the ones to include.
 3. **Weapons:** tick the weapons to render.
 4. **Placement:** position the pattern while watching the preview.
@@ -57,11 +70,14 @@ pip install -r requirements.txt
 python gui_app.py
 ```
 
-Build the exe:
+Build the Windows release (requires the bundled models and normal/roughness maps in `Assets`):
 
 ```bash
-pyinstaller --onefile --noconsole --name "Antigravity CS2 Skin Forge" --icon="icon.ico" --add-data "icon.ico;." --add-data "Assets/Models;Assets/Models" --version-file=version.txt gui_app.py
+python -m pip install pyinstaller
+python build_release.py
 ```
+
+The build writes the executable, complete portable ZIP and checksums to `dist/v1.3.1/`. Weapon maps are saved as lossless PNGs and checked for identical pixels before packaging.
 
 ## Lighting and materials
 
@@ -78,7 +94,7 @@ checked with Blender 5.3.0.
 
 The renderer lives in `blender_headless_render.py` beside the executable. Updating
 this script applies the lighting changes without rebuilding the executable.
-Keep it alongside the executable when distributing the app.
+The executable also includes a fallback renderer, so the script cannot be missing from a clean installation. Distribute the full ZIP to include the weapon surface maps.
 
 This remains a Blender paint preview. Exact CS2 appearance requires checking the
 finish in the [CS2 Workshop Item Editor](https://www.counter-strike.net/workshop/workshopfinishes).
